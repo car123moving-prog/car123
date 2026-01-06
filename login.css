@@ -1,0 +1,108 @@
+/* ===========================
+   LOGIN PAGE — CLEAN WHITE UI
+   =========================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-page {
+  width: 100%;
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 0 0 1px #f0f0f0;
+}
+
+.logo-section {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.logo-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.system-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
+}
+
+.login-form .form-group {
+  margin-bottom: 18px;
+}
+
+label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  font-size: 15px;
+  background: #fafafa;
+}
+
+input:focus {
+  outline: none;
+  border-color: #000;
+  background: #fff;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #333;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.footer-text {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #777;
+}
