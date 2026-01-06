@@ -2,15 +2,15 @@
 // MAIN APP CONTROLLER
 // ===============================
 
-import { getCurrentUser, clearSession } from "./session.js";
-import { setupAccordions, applyRoleVisibility } from "./ui.js";
+import { getCurrentUser, clearSession } from "session.js";
+import { setupAccordions, applyRoleVisibility } from "ui.js";
 
-import { initMembersSection } from "./members.js";
-import { initMovementsSection } from "./movements.js";
-import { initStatisticsSection } from "./statistics.js";
-import { initMessagesSection } from "./messages.js";
-import { initSettingsSection } from "./settings.js";
-import { initGlobalSearch } from "./search.js";
+import { initMembersSection } from "members.js";
+import { initMovementsSection } from "movements.js";
+import { initStatisticsSection } from "statistics.js";
+import { initMessagesSection } from "messages.js";
+import { initSettingsSection } from "settings.js";
+import { initGlobalSearch } from "search.js";
 
 // ===============================
 // INITIALIZATION
