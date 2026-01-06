@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Car Movement System v2</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h2>Car Movement System</h2>
+    </div>
+
+    <div class="header-right">
+      <input id="globalSearchInput" type="text" placeholder="Search..." class="search-box">
+      <span id="currentUserBox" class="user-box"></span>
+      <button id="logoutBtn" class="btn-primary">Logout</button>
+    </div>
+  </header>
+
+  <!-- Search Results -->
+  <div id="globalSearchResults" class="search-results"></div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <button class="sidebar-btn" data-target="membersSection">Members</button>
+      <button class="sidebar-btn" data-target="movementsSection">Movements</button>
+      <button class="sidebar-btn" data-target="statisticsSection">Statistics</button>
+      <button class="sidebar-btn" data-target="messagesSection">Messages</button>
+      <button class="sidebar-btn" data-target="settingsSection">Settings</button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+
+      <!-- MEMBERS SECTION -->
+      <section id="membersSection" class="page-section">
+
+        <h2>Members</h2>
+
+        <div class="accordion" data-role="admin">
+          <div class="accordion-header">Add Member</div>
+          <div class="accordion-body">
+            <form id="addMemberForm">
+              <input id="memberUsername" type="text" placeholder="Username" required>
+              <input id="memberPassword" type="password" placeholder="Password" required>
+              <input id="memberDisplayName" type="text" placeholder="Display Name" required>
+              <input id="memberPhone" type="text" placeholder="Phone">
+              <select id="memberRole">
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
+              <button class="btn-primary" type="submit">Add</button>
+              <div id="addMemberError" class="error"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="accordion" data-role="admin">
+          <div class="accordion-header">Members List</div>
+          <div class="accordion-body" id="membersList"></div>
+        </div>
+
+      </section>
+
+      <!-- MOVEMENTS SECTION -->
+      <section id="movementsSection" class="page-section">
+
+        <h2>Movements</h2>
+
+        <div class="accordion">
+          <div class="accordion-header">Add Movement</div>
+          <div class="accordion-body">
+            <form id="addMovementForm">
+              <select id="movementType">
+                <option value="receive">Receive</option>
+                <option value="deliver">Deliver</option>
+              </select>
+              <input id="movementCarNumber" type="text" placeholder="Car Number" required>
+              <input id="movementPlate" type="text" placeholder="Plate" required>
+              <input id="movementPerson" type="text" placeholder="Person" required>
+              <textarea id="movementNotes" placeholder="Notes"></textarea>
+              <button class="btn-primary" type="submit">Add</button>
+              <div id="addMovementError" class="error"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">Movements List</div>
+          <div class="accordion-body" id="movementsList"></div>
+        </div>
+
+      </section>
+
+      <!-- STATISTICS SECTION -->
+      <section id="statisticsSection" class="page-section">
+
+        <h2>Statistics</h2>
+
+        <div class="accordion">
+          <div class="accordion-header">Summary</div>
+          <div class="accordion-body" id="statsSummaryBox"></div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">By Date Range</div>
+          <div class="accordion-body">
+            <form id="statsRangeForm">
+              <input id="statsFromDate" type="date">
+              <input id="statsToDate" type="date">
+              <button class="btn-primary" type="submit">Calculate</button>
+            </form>
+            <div id="statsRangeResult"></div>
+          </div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">By User</div>
+          <div class="accordion-body">
+            <form id="statsUserForm">
+              <select id="statsUserSelect"></select>
+              <button class="btn-primary" type="submit">Calculate</button>
+            </form>
+            <div id="statsUserResult"></div>
+          </div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">By Car</div>
+          <div class="accordion-body">
+            <form id="statsCarForm">
+              <input id="statsCarNumber" type="text" placeholder="Car Number">
+              <button class="btn-primary" type="submit">Calculate</button>
+            </form>
+            <div id="statsCarResult"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- MESSAGES SECTION -->
+      <section id="messagesSection" class="page-section">
+
+        <h2>Messages</h2>
+
+        <div class="accordion">
+          <div class="accordion-header">Send Message</div>
+          <div class="accordion-body">
+            <form id="sendMessageForm">
+              <select id="messageTarget">
+                <option value="all">All</option>
+              </select>
+              <textarea id="messageText" placeholder="Message"></textarea>
+              <button class="btn-primary" type="submit">Send</button>
+              <div id="sendMessageError" class="error"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">Messages List</div>
+          <div class="accordion-body" id="messagesList"></div>
+        </div>
+
+      </section>
+
+      <!-- SETTINGS SECTION -->
+      <section id="settingsSection" class="page-section">
+
+        <h2>Settings</h2>
+
+        <div class="accordion">
+          <div class="accordion-header">Change Password</div>
+          <div class="accordion-body">
+            <form id="changePasswordForm">
+              <input id="oldPassword" type="password" placeholder="Current Password">
+              <input id="newPassword" type="password" placeholder="New Password">
+              <input id="confirmPassword" type="password" placeholder="Confirm New Password">
+              <button class="btn-primary" type="submit">Update</button>
+              <div id="changePasswordError" class="error"></div>
+              <div id="changePasswordSuccess" class="success"></div>
+            </form>
+          </div>
+        </div>
+
+        <div class="accordion">
+          <div class="accordion-header">Change Phone</div>
+          <div class="accordion-body">
+            <form id="changePhoneForm">
+              <input id="newPhone" type="text" placeholder="New Phone">
+              <button class="btn-primary" type="submit">Update</button>
+              <div id="changePhoneError" class="error"></div>
+              <div id="changePhoneSuccess" class="success"></div>
+            </form>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="main.js"></script>
+
+</body>
+</html>
