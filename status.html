@@ -1,81 +1,139 @@
+<!-- --- STATUS.HTML — START --- -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>System Status</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
     body {
-      font-family: "Segoe UI", Tahoma, Arial;
-      background: #f5f7fb;
+      font-family: Arial, sans-serif;
+      background: #ffffff;
       padding: 20px;
+      color: #111827;
     }
+
     h1 {
-      color: #0b3c6f;
-      margin-bottom: 10px;
-    }
-    .card {
-      background: #fff;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(11, 60, 111, 0.12);
       margin-bottom: 20px;
     }
-    .title {
-      font-size: 18px;
+
+    .box {
+      background: #f3f4f6;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .ok {
+      color: green;
       font-weight: bold;
-      margin-bottom: 8px;
-      color: #0b3c6f;
     }
-    pre {
-      background: #f0f3f8;
-      padding: 12px;
-      border-radius: 10px;
-      overflow-x: auto;
-      font-size: 14px;
+
+    .fail {
+      color: red;
+      font-weight: bold;
     }
-    .btn {
-      background: #0b3c6f;
-      color: #fff;
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      margin-top: 10px;
-      font-size: 15px;
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
+
 <body>
+
   <h1>System Status</h1>
 
-  <div class="card">
-    <div class="title">Session</div>
-    <pre id="sessionBox">Loading...</pre>
+  <!-- INTERNET STATUS -->
+  <div class="box">
+    <div class="section-title">Internet Connection</div>
+    <div id="internetStatus">Checking...</div>
   </div>
 
-  <div class="card">
-    <div class="title">LocalStorage</div>
-    <pre id="localBox">Loading...</pre>
+  <!-- SERVICE WORKER -->
+  <div class="box">
+    <div class="section-title">Service Worker</div>
+    <div id="swStatus">Checking...</div>
   </div>
 
-  <div class="card">
-    <div class="title">Firebase Connection</div>
-    <pre id="firebaseBox">Checking...</pre>
-    <button class="btn" onclick="checkFirebase()">Re-check</button>
+  <!-- CACHE -->
+  <div class="box">
+    <div class="section-title">Cache Status</div>
+    <div id="cacheStatus">Checking...</div>
   </div>
 
-  <div class="card">
-    <div class="title">Error Log</div>
-    <pre id="errorBox">No errors logged.</pre>
+  <!-- SESSION -->
+  <div class="box">
+    <div class="section-title">Session</div>
+    <div id="sessionStatus">Checking...</div>
   </div>
 
-  <div class="card">
-    <div class="title">App Version</div>
-    <pre>v1 — Car Movement System</pre>
+  <!-- FIREBASE -->
+  <div class="box">
+    <div class="section-title">Firebase Connection</div>
+    <div id="firebaseStatus">Checking...</div>
   </div>
 
   <script type="module">
+    /* INTERNET */
+    function checkInternet() {
+      if (navigator.onLine) {
+        document.getElementById("internetStatus").innerHTML =
+          "<span class='ok'>Online</span>";
+      } else {
+        document.getElementById("internetStatus").innerHTML =
+          "<span class='fail'>Offline</span>";
+      }
+    }
+    checkInternet();
+    window.addEventListener("online", checkInternet);
+    window.addEventListener("offline", checkInternet);
+
+    /* SERVICE WORKER */
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg) {
+          document.getElementById("swStatus").innerHTML =
+            "<span class='ok'>Registered</span>";
+        } else {
+          document.getElementById("swStatus").innerHTML =
+            "<span class='fail'>Not Registered</span>";
+        }
+      });
+    } else {
+      document.getElementById("swStatus").innerHTML =
+        "<span class='fail'>Not Supported</span>";
+    }
+
+    /* CACHE */
+    if ("caches" in window) {
+      caches.keys().then((keys) => {
+        if (keys.length > 0) {
+          document.getElementById("cacheStatus").innerHTML =
+            "<span class='ok'>Cache Found: " + keys.join(", ") + "</span>";
+        } else {
+          document.getElementById("cacheStatus").innerHTML =
+            "<span class='fail'>No Cache</span>";
+        }
+      });
+    } else {
+      document.getElementById("cacheStatus").innerHTML =
+        "<span class='fail'>Not Supported</span>";
+    }
+
+    /* SESSION */
+    const session = localStorage.getItem("cms_session");
+    if (session) {
+      document.getElementById("sessionStatus").innerHTML =
+        "<span class='ok'>Active Session</span>";
+    } else {
+      document.getElementById("sessionStatus").innerHTML =
+        "<span class='fail'>No Session</span>";
+    }
+
+    /* FIREBASE */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -93,51 +151,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const sessionBox = document.getElementById("sessionBox");
-    const localBox = document.getElementById("localBox");
-    const firebaseBox = document.getElementById("firebaseBox");
-    const errorBox = document.getElementById("errorBox");
+    get(ref(db, "status-test"))
+      .then(() => {
+        document.getElementById("firebaseStatus").innerHTML =
+          "<span class='ok'>Connected</span>";
+      })
+      .catch(() => {
+        document.getElementById("firebaseStatus").innerHTML =
+          "<span class='fail'>Connection Failed</span>";
+      });
 
-    function loadSession() {
-      try {
-        const session = localStorage.getItem("cms_session");
-        sessionBox.textContent = session ? session : "No session found.";
-      } catch (e) {
-        sessionBox.textContent = "Error reading session.";
-      }
-    }
-
-    function loadLocalStorage() {
-      try {
-        const all = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          all[key] = localStorage.getItem(key);
-        }
-        localBox.textContent = JSON.stringify(all, null, 2);
-      } catch (e) {
-        localBox.textContent = "Error reading localStorage.";
-      }
-    }
-
-    async function checkFirebase() {
-      firebaseBox.textContent = "Checking...";
-      try {
-        const snap = await get(ref(db, "users"));
-        if (snap.exists()) {
-          firebaseBox.textContent = "Connected ✓ — Users found in database.";
-        } else {
-          firebaseBox.textContent = "Connected ✓ — But no users found.";
-        }
-      } catch (e) {
-        firebaseBox.textContent = "Connection FAILED ✗";
-        errorBox.textContent = e.message;
-      }
-    }
-
-    loadSession();
-    loadLocalStorage();
-    checkFirebase();
   </script>
+
 </body>
 </html>
+<!-- --- STATUS.HTML — END --- -->
