@@ -1,15 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Car Movement System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <link rel="stylesheet" href="main.css" />
   <link rel="manifest" href="manifest.json" />
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js");
+      });
+    }
+  </script>
   <script type="module" src="main.js"></script>
 </head>
-<body>
 
+<body>
   <!-- LOGIN SCREEN -->
   <section id="screenLogin" class="screen active">
     <div class="center-container">
@@ -31,9 +39,8 @@
     </div>
   </section>
 
-  <!-- HOME SCREEN -->
+  <!-- APP SCREEN -->
   <section id="screenHome" class="screen">
-
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
@@ -60,15 +67,14 @@
     <!-- TABS -->
     <div class="tabs-bar">
       <button class="tab-btn active" data-view="viewMovements">Movements</button>
-      <button class="tab-btn" data-view="viewMembers" data-role="admin-only">Members</button>
+      <button class="tab-btn" data-view="viewMembers">Members</button>
       <button class="tab-btn" data-view="viewMessages">Messages</button>
-      <button class="tab-btn" data-view="viewStatistics" data-role="admin-only">Statistics</button>
+      <button class="tab-btn" data-view="viewStatistics">Statistics</button>
       <button class="tab-btn" data-view="viewSettings">Settings</button>
     </div>
 
     <!-- MOVEMENTS VIEW -->
     <div id="viewMovements" class="view active">
-
       <div class="view-header">
         <h2>Movements</h2>
         <div class="view-header-sub">Register and track car movements</div>
@@ -79,13 +85,12 @@
         <div class="card-header-row collapsible-header" data-target="addMovementBody">
           <div>
             <h3 class="card-title">Add Movement</h3>
-            <div class="card-subtitle">Create a new movement record</div>
+            <div class="card-subtitle">Enter movement details</div>
           </div>
-          <span class="collapse-indicator">▼</span>
+          <span class="collapse-indicator">▲</span>
         </div>
         <div id="addMovementBody" class="collapsible-body open">
           <form id="addMovementForm" class="form-grid">
-
             <div class="form-row">
               <label>Type</label>
               <select id="movementType">
@@ -93,27 +98,22 @@
                 <option value="deliver">DELIVER</option>
               </select>
             </div>
-
             <div class="form-row">
               <label>Car number</label>
               <input id="movementCarNumber" type="text" required />
             </div>
-
             <div class="form-row">
               <label>Plate</label>
               <input id="movementPlate" type="text" required />
             </div>
-
             <div class="form-row">
               <label>Driver</label>
               <select id="movementDriverSelect"></select>
             </div>
-
             <div class="form-row">
               <label>Notes</label>
               <textarea id="movementNotes"></textarea>
             </div>
-
             <button type="submit" class="btn-primary full-width">Save movement</button>
             <div id="addMovementError" class="error-text"></div>
             <div id="addMovementSuccess" class="success-text"></div>
@@ -121,7 +121,46 @@
         </div>
       </div>
 
-      <!-- MOVEMENTS LIST CARD -->
+      <!-- EDIT MOVEMENT MODAL -->
+      <div id="editMovementModal" class="modal">
+        <div class="modal-content card">
+          <div class="modal-header">
+            <h3>Edit movement</h3>
+            <button id="closeEditMovementBtn" class="text-btn">Close</button>
+          </div>
+          <form id="editMovementForm" class="form-grid">
+            <input type="hidden" id="editMovementId" />
+            <div class="form-row">
+              <label>Type</label>
+              <select id="editMovementType">
+                <option value="receive">RECEIVE</option>
+                <option value="deliver">DELIVER</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Car number</label>
+              <input id="editMovementCarNumber" type="text" required />
+            </div>
+            <div class="form-row">
+              <label>Plate</label>
+              <input id="editMovementPlate" type="text" required />
+            </div>
+            <div class="form-row">
+              <label>Driver</label>
+              <select id="editMovementDriverSelect"></select>
+            </div>
+            <div class="form-row">
+              <label>Notes</label>
+              <textarea id="editMovementNotes"></textarea>
+            </div>
+            <button type="submit" class="btn-primary full-width">Update movement</button>
+            <div id="editMovementError" class="error-text"></div>
+            <div id="editMovementSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- MOVEMENTS LIST -->
       <div class="card big-card">
         <div class="card-header-row collapsible-header" data-target="movementsListBody">
           <div>
@@ -130,16 +169,14 @@
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
-        <div id="movementsListBody" class="collapsible-body open">
+        <div id="movementsListBody" class="collapsible-body">
           <div id="movementsList" class="list"></div>
         </div>
       </div>
-
     </div>
 
-    <!-- MEMBERS VIEW (ADMIN ONLY) -->
+    <!-- MEMBERS VIEW -->
     <div id="viewMembers" class="view">
-
       <div class="view-header">
         <h2>Members</h2>
         <div class="view-header-sub">Manage users and drivers</div>
@@ -155,27 +192,22 @@
         </div>
         <div id="addMemberBody" class="collapsible-body">
           <form id="addMemberForm" class="form-grid">
-
             <div class="form-row">
               <label>Username</label>
               <input id="memberUsername" type="text" required />
             </div>
-
             <div class="form-row">
               <label>Password</label>
               <input id="memberPassword" type="password" required />
             </div>
-
             <div class="form-row">
               <label>Display name</label>
               <input id="memberDisplayName" type="text" required />
             </div>
-
             <div class="form-row">
               <label>Phone</label>
               <input id="memberPhone" type="text" />
             </div>
-
             <div class="form-row">
               <label>Role</label>
               <select id="memberRole">
@@ -183,7 +215,6 @@
                 <option value="user">User</option>
               </select>
             </div>
-
             <button type="submit" class="btn-primary full-width">Save member</button>
             <div id="addMemberError" class="error-text"></div>
             <div id="addMemberSuccess" class="success-text"></div>
@@ -199,16 +230,14 @@
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
-        <div id="membersListBody" class="collapsible-body open">
+        <div id="membersListBody" class="collapsible-body">
           <div id="membersList" class="list"></div>
         </div>
       </div>
-
     </div>
 
     <!-- MESSAGES VIEW -->
     <div id="viewMessages" class="view">
-
       <div class="view-header">
         <h2>Messages</h2>
         <div class="view-header-sub">Internal messaging between users</div>
@@ -222,19 +251,16 @@
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
-        <div id="sendMessageBody" class="collapsible-body open">
+        <div id="sendMessageBody" class="collapsible-body">
           <form id="sendMessageForm" class="form-grid">
-
             <div class="form-row">
               <label>To</label>
               <select id="messageTarget"></select>
             </div>
-
             <div class="form-row">
               <label>Message</label>
               <textarea id="messageText"></textarea>
             </div>
-
             <button type="submit" class="btn-primary full-width">Send</button>
             <div id="sendMessageError" class="error-text"></div>
             <div id="sendMessageSuccess" class="success-text"></div>
@@ -250,16 +276,14 @@
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
-        <div id="messagesListBody" class="collapsible-body open">
+        <div id="messagesListBody" class="collapsible-body">
           <div id="messagesList" class="list"></div>
         </div>
       </div>
-
     </div>
 
-    <!-- STATISTICS VIEW (ADMIN ONLY) -->
+    <!-- STATISTICS VIEW -->
     <div id="viewStatistics" class="view">
-
       <div class="view-header">
         <h2>Statistics</h2>
         <div class="view-header-sub">Overview and analysis</div>
@@ -272,7 +296,7 @@
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
-        <div id="statsSummaryBody" class="collapsible-body open">
+        <div id="statsSummaryBody" class="collapsible-body">
           <div id="statsSummaryBox"></div>
         </div>
       </div>
@@ -337,15 +361,13 @@
           <div id="statsCarResult" class="info-text"></div>
         </div>
       </div>
-
     </div>
 
     <!-- SETTINGS VIEW -->
     <div id="viewSettings" class="view">
-
       <div class="view-header">
         <h2>Settings</h2>
-        <div class="view-header-sub">Manage your account</div>
+        <div class="view-header-sub">Account and application settings</div>
       </div>
 
       <div class="card big-card">
@@ -395,9 +417,7 @@
           </form>
         </div>
       </div>
-
     </div>
-
   </section>
 
   <!-- SEARCH OVERLAY -->
@@ -410,6 +430,5 @@
       <div id="globalSearchResults" class="search-results"></div>
     </div>
   </div>
-
 </body>
 </html>
