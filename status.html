@@ -1,93 +1,160 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <title>App Status</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>System Status</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
   <style>
-    body{font-family:Arial,Helvetica,sans-serif;line-height:1.4;padding:18px;background:#f6f8fb;color:#0b2540}
-    .card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 6px 18px rgba(11,60,111,0.06)}
-    h1{font-size:18px;margin-bottom:8px;color:#0b3c6f}
-    pre{background:#f1f5f9;padding:10px;border-radius:6px;overflow:auto}
-    .ok{color:green;font-weight:700}
-    .warn{color:#b36b00;font-weight:700}
-    .err{color:#b00020;font-weight:700}
-    button{background:#0b3c6f;color:#fff;border:none;padding:8px 10px;border-radius:6px;cursor:pointer}
+    body {
+      font-family: "Segoe UI", Tahoma, Arial;
+      background: #f5f7fb;
+      padding: 20px;
+      direction: rtl;
+    }
+
+    h1 {
+      color: #0b3c6f;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(11, 60, 111, 0.12);
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #0b3c6f;
+    }
+
+    pre {
+      background: #f0f3f8;
+      padding: 12px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+
+    .btn {
+      background: #0b3c6f;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+      font-size: 15px;
+    }
   </style>
 </head>
+
 <body>
+
+  <h1>لوحة التشخيص — System Status</h1>
+
+  <!-- SESSION -->
   <div class="card">
-    <h1>حالة التطبيق المحلي</h1>
-    <div id="summary">جارٍ الفحص...</div>
+    <div class="title">Session (الجلسة الحالية)</div>
+    <pre id="sessionBox">Loading...</pre>
   </div>
 
+  <!-- LOCAL STORAGE -->
   <div class="card">
-    <h1>محتويات التخزين المحلي</h1>
-    <div><strong>cms_mode:</strong> <span id="mode">-</span></div>
-    <div style="margin-top:8px"><strong>cms_users:</strong></div>
-    <pre id="users">-</pre>
-    <div><strong>cms_movements:</strong></div>
-    <pre id="movements">-</pre>
-    <div><strong>cms_messages:</strong></div>
-    <pre id="messages">-</pre>
+    <div class="title">LocalStorage</div>
+    <pre id="localBox">Loading...</pre>
   </div>
 
+  <!-- FIREBASE CHECK -->
   <div class="card">
-    <h1>سجل آخر خطأ</h1>
-    <div id="last">جارٍ التحميل...</div>
-    <pre id="lastRaw">-</pre>
+    <div class="title">Firebase Connection</div>
+    <pre id="firebaseBox">Checking...</pre>
+    <button class="btn" onclick="checkFirebase()">إعادة الفحص</button>
   </div>
 
+  <!-- ERROR LOG -->
   <div class="card">
-    <h1>إجراءات سريعة</h1>
-    <ul>
-      <li>إذا كانت القيم فارغة، امسح بيانات الموقع ثم أعد تحميل الصفحة.</li>
-      <li>تأكد أن الملفات المحدثة (index.html, main.js, main.css, manifest.json, service-worker.js, al-masaood-logo.png) مرفوعة بنفس الأسماء.</li>
-      <li>إذا ظهر خطأ password_mismatch أو user_not_found، أعد تهيئة المستخدمين المحليين عبر استبدال main.js بالنسخة النهائية التي زودتك بها ثم امسح بيانات الموقع.</li>
-    </ul>
-    <div style="margin-top:8px"><button id="refreshBtn">تحديث الفحص</button></div>
+    <div class="title">Error Log (آخر الأخطاء)</div>
+    <pre id="errorBox">No errors logged.</pre>
   </div>
 
-  <script>
-    function safeParse(v){ try{ return JSON.parse(v); }catch{ return v; } }
-    function show() {
+  <!-- VERSION -->
+  <div class="card">
+    <div class="title">App Version</div>
+    <pre>v1 — Car Movement System</pre>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDnjSxD_oiGo9T-hlI8ZplRDL0HfZDgknQ",
+      authDomain: "car99-moving.firebaseapp.com",
+      databaseURL: "https://car99-moving-default-rtdb.firebaseio.com",
+      projectId: "car99-moving",
+      storageBucket: "car99-moving.firebasestorage.app",
+      messagingSenderId: "931694570630",
+      appId: "1:931694570630:web:d39cf5461eed97e6d5b507",
+      measurementId: "G-7Q1CNSTQDG"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Load session
+    const sessionBox = document.getElementById("sessionBox");
+    const localBox = document.getElementById("localBox");
+    const firebaseBox = document.getElementById("firebaseBox");
+    const errorBox = document.getElementById("errorBox");
+
+    function loadSession() {
       try {
-        const mode = localStorage.getItem('cms_mode') || 'unknown';
-        document.getElementById('mode').textContent = mode;
-        const users = localStorage.getItem('cms_users');
-        const mov = localStorage.getItem('cms_movements');
-        const msg = localStorage.getItem('cms_messages');
-        document.getElementById('users').textContent = users ? JSON.stringify(safeParse(users), null, 2) : '[]';
-        document.getElementById('movements').textContent = mov ? JSON.stringify(safeParse(mov), null, 2) : '[]';
-        document.getElementById('messages').textContent = msg ? JSON.stringify(safeParse(msg), null, 2) : '[]';
-        const last = localStorage.getItem('cms_last_error');
-        if (!last) {
-          document.getElementById('last').innerHTML = '<span class="ok">لا توجد أخطاء مسجلة</span>';
-          document.getElementById('lastRaw').textContent = '-';
-        } else {
-          try {
-            const parsed = JSON.parse(last);
-            document.getElementById('last').innerHTML = '<span class="err">يوجد خطأ مسجل</span>';
-            document.getElementById('lastRaw').textContent = JSON.stringify(parsed, null, 2);
-          } catch {
-            document.getElementById('last').innerHTML = '<span class="err">يوجد خطأ مسجل</span>';
-            document.getElementById('lastRaw').textContent = last;
-          }
-        }
-        // summary
-        const usersArr = users ? safeParse(users) : [];
-        if (!usersArr || usersArr.length === 0) {
-          document.getElementById('summary').innerHTML = '<span class="warn">لا يوجد مستخدمون محليين. قد يكون seeding لم يعمل.</span>';
-        } else {
-          document.getElementById('summary').innerHTML = '<span class="ok">المستخدمون المحليون موجودون. حاول تسجيل الدخول الآن.</span>';
-        }
+        const session = localStorage.getItem("cms_session");
+        sessionBox.textContent = session ? session : "No session found.";
       } catch (e) {
-        document.getElementById('summary').innerHTML = '<span class="err">فشل قراءة التخزين المحلي</span>';
-        document.getElementById('lastRaw').textContent = e && e.message ? e.message : String(e);
+        sessionBox.textContent = "Error reading session.";
       }
     }
-    document.getElementById('refreshBtn').addEventListener('click', show);
-    show();
+
+    function loadLocalStorage() {
+      try {
+        const all = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          all[key] = localStorage.getItem(key);
+        }
+        localBox.textContent = JSON.stringify(all, null, 2);
+      } catch (e) {
+        localBox.textContent = "Error reading localStorage.";
+      }
+    }
+
+    async function checkFirebase() {
+      firebaseBox.textContent = "Checking...";
+      try {
+        const snap = await get(ref(db, "users"));
+        if (snap.exists()) {
+          firebaseBox.textContent = "Connected ✓ — Users found in database.";
+        } else {
+          firebaseBox.textContent = "Connected ✓ — But no users found.";
+        }
+      } catch (e) {
+        firebaseBox.textContent = "Connection FAILED ✗";
+        errorBox.textContent = e.message;
+      }
+    }
+
+    // Init
+    loadSession();
+    loadLocalStorage();
+    checkFirebase();
   </script>
+
 </body>
 </html>
