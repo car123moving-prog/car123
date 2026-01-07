@@ -1,8 +1,7 @@
 {
   "name": "Car Movement System",
   "short_name": "CMS",
-  "lang": "ar",
-  "dir": "rtl",
+  "lang": "en",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0b3c6f",
