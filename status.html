@@ -1,23 +1,19 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>System Status</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <style>
     body {
       font-family: "Segoe UI", Tahoma, Arial;
       background: #f5f7fb;
       padding: 20px;
-      direction: rtl;
     }
-
     h1 {
       color: #0b3c6f;
       margin-bottom: 10px;
     }
-
     .card {
       background: #fff;
       padding: 16px;
@@ -25,14 +21,12 @@
       box-shadow: 0 6px 18px rgba(11, 60, 111, 0.12);
       margin-bottom: 20px;
     }
-
     .title {
       font-size: 18px;
       font-weight: bold;
       margin-bottom: 8px;
       color: #0b3c6f;
     }
-
     pre {
       background: #f0f3f8;
       padding: 12px;
@@ -40,7 +34,6 @@
       overflow-x: auto;
       font-size: 14px;
     }
-
     .btn {
       background: #0b3c6f;
       color: #fff;
@@ -53,37 +46,30 @@
     }
   </style>
 </head>
-
 <body>
+  <h1>System Status</h1>
 
-  <h1>لوحة التشخيص — System Status</h1>
-
-  <!-- SESSION -->
   <div class="card">
-    <div class="title">Session (الجلسة الحالية)</div>
+    <div class="title">Session</div>
     <pre id="sessionBox">Loading...</pre>
   </div>
 
-  <!-- LOCAL STORAGE -->
   <div class="card">
     <div class="title">LocalStorage</div>
     <pre id="localBox">Loading...</pre>
   </div>
 
-  <!-- FIREBASE CHECK -->
   <div class="card">
     <div class="title">Firebase Connection</div>
     <pre id="firebaseBox">Checking...</pre>
-    <button class="btn" onclick="checkFirebase()">إعادة الفحص</button>
+    <button class="btn" onclick="checkFirebase()">Re-check</button>
   </div>
 
-  <!-- ERROR LOG -->
   <div class="card">
-    <div class="title">Error Log (آخر الأخطاء)</div>
+    <div class="title">Error Log</div>
     <pre id="errorBox">No errors logged.</pre>
   </div>
 
-  <!-- VERSION -->
   <div class="card">
     <div class="title">App Version</div>
     <pre>v1 — Car Movement System</pre>
@@ -107,7 +93,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Load session
     const sessionBox = document.getElementById("sessionBox");
     const localBox = document.getElementById("localBox");
     const firebaseBox = document.getElementById("firebaseBox");
@@ -150,11 +135,9 @@
       }
     }
 
-    // Init
     loadSession();
     loadLocalStorage();
     checkFirebase();
   </script>
-
 </body>
 </html>
