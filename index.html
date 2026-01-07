@@ -1,16 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <title>Car Movement System v2.1.1</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>Car Movement System v1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b3c6f">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b3c6f" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="main.css" />
+
+  <!-- Luxon for timezone handling -->
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+
+  <!-- Firebase compat SDKs (used by main.js when FIREBASE_MODE true) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -19,7 +27,7 @@
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <img src="al-masaood-logo.png" alt="Al Masaood" class="logo">
+        <img src="al-masaood-logo.png" alt="Al Masaood" class="logo" />
         <div class="header-title">
           <div class="app-name">Car Movement System</div>
           <div class="app-subtitle">Al Masaood Group</div>
@@ -36,20 +44,20 @@
       <!-- LOGIN -->
       <section id="screenLogin" class="screen active">
         <div class="center-container">
-          <img src="al-masaood-logo.png" alt="Al Masaood" class="logo-large">
+          <img src="al-masaood-logo.png" alt="Al Masaood" class="logo-large" />
           <h1 class="login-title">Car Movement System</h1>
           <h2 class="login-subtitle">Sign in</h2>
 
           <form id="loginForm" class="card login-card">
-            <input id="loginUsername" type="text" placeholder="Username" required>
-            <input id="loginPassword" type="password" placeholder="Password" required>
+            <input id="loginUsername" type="text" placeholder="Username or Email" required />
+            <input id="loginPassword" type="password" placeholder="Password" required />
             <button type="submit" class="btn-primary full-width">Login</button>
             <div id="loginError" class="error-text"></div>
           </form>
 
           <div class="login-footer">
             <span>Powered by Al Masaood</span>
-            <span>v2.1.1</span>
+            <span>v1</span>
           </div>
         </div>
       </section>
@@ -70,14 +78,14 @@
         <div id="searchOverlay" class="search-overlay">
           <div class="search-panel card">
             <div class="search-header">
-              <input id="globalSearchInput" type="text" placeholder="Search movements, members, messages...">
+              <input id="globalSearchInput" type="text" placeholder="Search movements, members, messages..." />
               <button id="closeSearchBtn" class="text-btn">Close</button>
             </div>
             <div id="globalSearchResults" class="search-results"></div>
           </div>
         </div>
 
-        <!-- TABS (BIG RECTANGULAR BUTTONS) -->
+        <!-- TABS -->
         <div class="tabs-bar">
           <button class="tab-btn active" data-view="viewMovements">Movements</button>
           <button class="tab-btn" data-view="viewMembers">Members</button>
@@ -87,7 +95,6 @@
         </div>
 
         <!-- VIEWS -->
-
         <!-- MOVEMENTS -->
         <div id="viewMovements" class="view active">
           <div class="view-header">
@@ -115,11 +122,11 @@
                 </div>
                 <div class="form-row">
                   <label>Car Number</label>
-                  <input id="movementCarNumber" type="text" required>
+                  <input id="movementCarNumber" type="text" required />
                 </div>
                 <div class="form-row">
                   <label>Plate</label>
-                  <input id="movementPlate" type="text" required>
+                  <input id="movementPlate" type="text" required />
                 </div>
                 <div class="form-row">
                   <label>Driver (from members)</label>
@@ -170,19 +177,19 @@
               <form id="addMemberForm" class="form-grid">
                 <div class="form-row">
                   <label>Username</label>
-                  <input id="memberUsername" type="text" required>
+                  <input id="memberUsername" type="text" required />
                 </div>
                 <div class="form-row">
                   <label>Password</label>
-                  <input id="memberPassword" type="password" required>
+                  <input id="memberPassword" type="password" required />
                 </div>
                 <div class="form-row">
                   <label>Display Name</label>
-                  <input id="memberDisplayName" type="text" required>
+                  <input id="memberDisplayName" type="text" required />
                 </div>
                 <div class="form-row">
                   <label>Phone</label>
-                  <input id="memberPhone" type="text">
+                  <input id="memberPhone" type="text" />
                 </div>
                 <div class="form-row">
                   <label>Role</label>
@@ -288,11 +295,11 @@
               <form id="statsRangeForm" class="form-grid inline">
                 <div class="form-row">
                   <label>From</label>
-                  <input id="statsFromDate" type="date">
+                  <input id="statsFromDate" type="date" />
                 </div>
                 <div class="form-row">
                   <label>To</label>
-                  <input id="statsToDate" type="date">
+                  <input id="statsToDate" type="date" />
                 </div>
                 <button type="submit" class="btn-primary">Calculate</button>
               </form>
@@ -330,7 +337,7 @@
               <form id="statsCarForm" class="form-grid inline">
                 <div class="form-row">
                   <label>Car Number</label>
-                  <input id="statsCarNumber" type="text">
+                  <input id="statsCarNumber" type="text" />
                 </div>
                 <button type="submit" class="btn-primary">Calculate</button>
               </form>
@@ -357,15 +364,15 @@
               <form id="changePasswordForm" class="form-grid">
                 <div class="form-row">
                   <label>Current Password</label>
-                  <input id="oldPassword" type="password">
+                  <input id="oldPassword" type="password" />
                 </div>
                 <div class="form-row">
                   <label>New Password</label>
-                  <input id="newPassword" type="password">
+                  <input id="newPassword" type="password" />
                 </div>
                 <div class="form-row">
                   <label>Confirm New Password</label>
-                  <input id="confirmPassword" type="password">
+                  <input id="confirmPassword" type="password" />
                 </div>
                 <button type="submit" class="btn-primary full-width">Update</button>
                 <div id="changePasswordError" class="error-text"></div>
@@ -385,7 +392,7 @@
               <form id="changePhoneForm" class="form-grid">
                 <div class="form-row">
                   <label>New Phone</label>
-                  <input id="newPhone" type="text">
+                  <input id="newPhone" type="text" />
                 </div>
                 <button type="submit" class="btn-primary full-width">Update</button>
                 <div id="changePhoneError" class="error-text"></div>
@@ -404,7 +411,7 @@
         <span>© Al Masaood Group</span>
       </div>
       <div class="footer-right">
-        <span>Developed by Mohamed Saad · v2.1.1</span>
+        <span>Developed by Mohamed Saad · v1</span>
       </div>
     </footer>
 
