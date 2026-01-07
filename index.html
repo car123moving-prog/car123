@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Car Movement System v2.1</title>
+  <title>Car Movement System v2.1.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- PWA -->
@@ -14,31 +14,29 @@
 </head>
 <body>
 
-  <!-- APP SHELL -->
   <div id="app">
 
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <img src="masoud-logo.png" alt="Al Masoud" class="logo">
+        <img src="al-masaood-logo.png" alt="Al Masaood" class="logo">
         <div class="header-title">
           <div class="app-name">Car Movement System</div>
-          <div class="app-subtitle">Al Masoud Group</div>
+          <div class="app-subtitle">Al Masaood Group</div>
         </div>
       </div>
       <div class="header-right">
         <button id="headerSearchBtn" class="text-btn">Search</button>
-        <button id="headerSettingsBtn" class="text-btn">Settings</button>
       </div>
     </header>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <main class="app-main">
 
-      <!-- LOGIN SCREEN -->
+      <!-- LOGIN -->
       <section id="screenLogin" class="screen active">
         <div class="center-container">
-          <img src="masoud-logo.png" alt="Al Masoud" class="logo-large">
+          <img src="al-masaood-logo.png" alt="Al Masaood" class="logo-large">
           <h1 class="login-title">Car Movement System</h1>
           <h2 class="login-subtitle">Sign in</h2>
 
@@ -50,13 +48,13 @@
           </form>
 
           <div class="login-footer">
-            <span>Powered by Al Masoud</span>
-            <span>v2.1</span>
+            <span>Powered by Al Masaood</span>
+            <span>v2.1.1</span>
           </div>
         </div>
       </section>
 
-      <!-- HOME SHELL (AFTER LOGIN) -->
+      <!-- APP -->
       <section id="screenHome" class="screen">
 
         <!-- USER BAR -->
@@ -68,74 +66,92 @@
           <button id="logoutBtn" class="text-btn danger">Logout</button>
         </div>
 
-        <!-- GLOBAL SEARCH OVERLAY -->
+        <!-- SEARCH OVERLAY -->
         <div id="searchOverlay" class="search-overlay">
           <div class="search-panel card">
             <div class="search-header">
-              <input id="globalSearchInput" type="text" placeholder="Search movements, users, messages...">
+              <input id="globalSearchInput" type="text" placeholder="Search movements, members, messages...">
               <button id="closeSearchBtn" class="text-btn">Close</button>
             </div>
             <div id="globalSearchResults" class="search-results"></div>
           </div>
         </div>
 
-        <!-- MAIN SECTIONS -->
-        <div id="viewMovements" class="view active">
+        <!-- TABS (BIG RECTANGULAR BUTTONS) -->
+        <div class="tabs-bar">
+          <button class="tab-btn active" data-view="viewMovements">Movements</button>
+          <button class="tab-btn" data-view="viewMembers">Members</button>
+          <button class="tab-btn" data-view="viewMessages">Messages</button>
+          <button class="tab-btn" data-view="viewStatistics">Statistics</button>
+          <button class="tab-btn" data-view="viewSettings">Settings</button>
+        </div>
 
-          <!-- MOVEMENTS HEADER -->
+        <!-- VIEWS -->
+
+        <!-- MOVEMENTS -->
+        <div id="viewMovements" class="view active">
           <div class="view-header">
             <h2>Movements</h2>
             <div class="view-header-sub">Main operations screen</div>
           </div>
 
-          <!-- ADD MOVEMENT CARD -->
+          <!-- ADD MOVEMENT -->
           <div class="card">
-            <h3 class="card-title">Add Movement</h3>
-            <form id="addMovementForm" class="form-grid">
-              <div class="form-row">
-                <label>Type</label>
-                <select id="movementType">
-                  <option value="receive">Receive</option>
-                  <option value="deliver">Deliver</option>
-                </select>
+            <div class="card-header-row collapsible-header" data-target="addMovementBody">
+              <div>
+                <h3 class="card-title">Add Movement</h3>
+                <div class="card-subtitle">Create new movement record</div>
               </div>
-              <div class="form-row">
-                <label>Car Number</label>
-                <input id="movementCarNumber" type="text" placeholder="Car Number" required>
-              </div>
-              <div class="form-row">
-                <label>Plate</label>
-                <input id="movementPlate" type="text" placeholder="Plate" required>
-              </div>
-              <div class="form-row">
-                <label>Driver</label>
-                <select id="movementDriverSelect"></select>
-              </div>
-              <div class="form-row">
-                <label>Notes</label>
-                <textarea id="movementNotes" placeholder="Notes"></textarea>
-              </div>
-              <button type="submit" class="btn-primary full-width">Save Movement</button>
-              <div id="addMovementError" class="error-text"></div>
-              <div id="addMovementSuccess" class="success-text"></div>
-            </form>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="addMovementBody" class="collapsible-body open">
+              <form id="addMovementForm" class="form-grid">
+                <div class="form-row">
+                  <label>Type</label>
+                  <select id="movementType">
+                    <option value="receive">Receive</option>
+                    <option value="deliver">Deliver</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label>Car Number</label>
+                  <input id="movementCarNumber" type="text" required>
+                </div>
+                <div class="form-row">
+                  <label>Plate</label>
+                  <input id="movementPlate" type="text" required>
+                </div>
+                <div class="form-row">
+                  <label>Driver (from members)</label>
+                  <select id="movementDriverSelect"></select>
+                </div>
+                <div class="form-row">
+                  <label>Notes</label>
+                  <textarea id="movementNotes"></textarea>
+                </div>
+                <button type="submit" class="btn-primary full-width">Save Movement</button>
+                <div id="addMovementError" class="error-text"></div>
+                <div id="addMovementSuccess" class="success-text"></div>
+              </form>
+            </div>
           </div>
 
-          <!-- MOVEMENTS LIST CARD -->
+          <!-- MOVEMENTS LIST -->
           <div class="card">
-            <div class="card-header-row">
+            <div class="card-header-row collapsible-header" data-target="movementsListBody">
               <div>
                 <h3 class="card-title">Movements List</h3>
                 <div class="card-subtitle">Latest movements</div>
               </div>
-              <button id="refreshMovementsBtn" class="text-btn">Refresh</button>
+              <span class="collapse-indicator">▼</span>
             </div>
-            <div id="movementsList" class="list"></div>
+            <div id="movementsListBody" class="collapsible-body open">
+              <div id="movementsList" class="list"></div>
+            </div>
           </div>
-
         </div>
 
-        <!-- MEMBERS VIEW -->
+        <!-- MEMBERS -->
         <div id="viewMembers" class="view">
           <div class="view-header">
             <h2>Members</h2>
@@ -143,49 +159,60 @@
           </div>
 
           <div class="card">
-            <h3 class="card-title">Add Member</h3>
-            <form id="addMemberForm" class="form-grid">
-              <div class="form-row">
-                <label>Username</label>
-                <input id="memberUsername" type="text" required>
+            <div class="card-header-row collapsible-header" data-target="addMemberBody">
+              <div>
+                <h3 class="card-title">Add Member</h3>
+                <div class="card-subtitle">Create new user/driver</div>
               </div>
-              <div class="form-row">
-                <label>Password</label>
-                <input id="memberPassword" type="password" required>
-              </div>
-              <div class="form-row">
-                <label>Display Name</label>
-                <input id="memberDisplayName" type="text" required>
-              </div>
-              <div class="form-row">
-                <label>Phone</label>
-                <input id="memberPhone" type="text">
-              </div>
-              <div class="form-row">
-                <label>Role</label>
-                <select id="memberRole">
-                  <option value="admin">Admin</option>
-                  <option value="user">User</option>
-                </select>
-              </div>
-              <button type="submit" class="btn-primary full-width">Save Member</button>
-              <div id="addMemberError" class="error-text"></div>
-              <div id="addMemberSuccess" class="success-text"></div>
-            </form>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="addMemberBody" class="collapsible-body open">
+              <form id="addMemberForm" class="form-grid">
+                <div class="form-row">
+                  <label>Username</label>
+                  <input id="memberUsername" type="text" required>
+                </div>
+                <div class="form-row">
+                  <label>Password</label>
+                  <input id="memberPassword" type="password" required>
+                </div>
+                <div class="form-row">
+                  <label>Display Name</label>
+                  <input id="memberDisplayName" type="text" required>
+                </div>
+                <div class="form-row">
+                  <label>Phone</label>
+                  <input id="memberPhone" type="text">
+                </div>
+                <div class="form-row">
+                  <label>Role</label>
+                  <select id="memberRole">
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn-primary full-width">Save Member</button>
+                <div id="addMemberError" class="error-text"></div>
+                <div id="addMemberSuccess" class="success-text"></div>
+              </form>
+            </div>
           </div>
 
           <div class="card">
-            <div class="card-header-row">
+            <div class="card-header-row collapsible-header" data-target="membersListBody">
               <div>
                 <h3 class="card-title">Members List</h3>
-                <div class="card-subtitle">All users</div>
+                <div class="card-subtitle">All users & drivers</div>
               </div>
+              <span class="collapse-indicator">▼</span>
             </div>
-            <div id="membersList" class="list"></div>
+            <div id="membersListBody" class="collapsible-body open">
+              <div id="membersList" class="list"></div>
+            </div>
           </div>
         </div>
 
-        <!-- MESSAGES VIEW -->
+        <!-- MESSAGES -->
         <div id="viewMessages" class="view">
           <div class="view-header">
             <h2>Messages</h2>
@@ -193,34 +220,45 @@
           </div>
 
           <div class="card">
-            <h3 class="card-title">Send Message</h3>
-            <form id="sendMessageForm" class="form-grid">
-              <div class="form-row">
-                <label>To</label>
-                <select id="messageTarget"></select>
+            <div class="card-header-row collapsible-header" data-target="sendMessageBody">
+              <div>
+                <h3 class="card-title">Send Message</h3>
+                <div class="card-subtitle">Send to member or all</div>
               </div>
-              <div class="form-row">
-                <label>Message</label>
-                <textarea id="messageText" placeholder="Type your message..."></textarea>
-              </div>
-              <button type="submit" class="btn-primary full-width">Send</button>
-              <div id="sendMessageError" class="error-text"></div>
-              <div id="sendMessageSuccess" class="success-text"></div>
-            </form>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="sendMessageBody" class="collapsible-body open">
+              <form id="sendMessageForm" class="form-grid">
+                <div class="form-row">
+                  <label>To</label>
+                  <select id="messageTarget"></select>
+                </div>
+                <div class="form-row">
+                  <label>Message</label>
+                  <textarea id="messageText"></textarea>
+                </div>
+                <button type="submit" class="btn-primary full-width">Send</button>
+                <div id="sendMessageError" class="error-text"></div>
+                <div id="sendMessageSuccess" class="success-text"></div>
+              </form>
+            </div>
           </div>
 
           <div class="card">
-            <div class="card-header-row">
+            <div class="card-header-row collapsible-header" data-target="messagesListBody">
               <div>
                 <h3 class="card-title">Messages List</h3>
                 <div class="card-subtitle">Latest messages</div>
               </div>
+              <span class="collapse-indicator">▼</span>
             </div>
-            <div id="messagesList" class="list"></div>
+            <div id="messagesListBody" class="collapsible-body open">
+              <div id="messagesList" class="list"></div>
+            </div>
           </div>
         </div>
 
-        <!-- STATISTICS VIEW -->
+        <!-- STATISTICS -->
         <div id="viewStatistics" class="view">
           <div class="view-header">
             <h2>Statistics</h2>
@@ -228,52 +266,80 @@
           </div>
 
           <div class="card">
-            <h3 class="card-title">Summary</h3>
-            <div id="statsSummaryBox"></div>
+            <div class="card-header-row collapsible-header" data-target="statsSummaryBody">
+              <div>
+                <h3 class="card-title">Summary</h3>
+              </div>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="statsSummaryBody" class="collapsible-body open">
+              <div id="statsSummaryBox"></div>
+            </div>
           </div>
 
           <div class="card">
-            <h3 class="card-title">By Date Range</h3>
-            <form id="statsRangeForm" class="form-grid inline">
-              <div class="form-row">
-                <label>From</label>
-                <input id="statsFromDate" type="date">
+            <div class="card-header-row collapsible-header" data-target="statsRangeBody">
+              <div>
+                <h3 class="card-title">By Date Range</h3>
               </div>
-              <div class="form-row">
-                <label>To</label>
-                <input id="statsToDate" type="date">
-              </div>
-              <button type="submit" class="btn-primary">Calculate</button>
-            </form>
-            <div id="statsRangeResult" class="info-text"></div>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="statsRangeBody" class="collapsible-body open">
+              <form id="statsRangeForm" class="form-grid inline">
+                <div class="form-row">
+                  <label>From</label>
+                  <input id="statsFromDate" type="date">
+                </div>
+                <div class="form-row">
+                  <label>To</label>
+                  <input id="statsToDate" type="date">
+                </div>
+                <button type="submit" class="btn-primary">Calculate</button>
+              </form>
+              <div id="statsRangeResult" class="info-text"></div>
+            </div>
           </div>
 
           <div class="card">
-            <h3 class="card-title">By User</h3>
-            <form id="statsUserForm" class="form-grid inline">
-              <div class="form-row">
-                <label>User</label>
-                <select id="statsUserSelect"></select>
+            <div class="card-header-row collapsible-header" data-target="statsUserBody">
+              <div>
+                <h3 class="card-title">By User</h3>
               </div>
-              <button type="submit" class="btn-primary">Calculate</button>
-            </form>
-            <div id="statsUserResult" class="info-text"></div>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="statsUserBody" class="collapsible-body open">
+              <form id="statsUserForm" class="form-grid inline">
+                <div class="form-row">
+                  <label>User</label>
+                  <select id="statsUserSelect"></select>
+                </div>
+                <button type="submit" class="btn-primary">Calculate</button>
+              </form>
+              <div id="statsUserResult" class="info-text"></div>
+            </div>
           </div>
 
           <div class="card">
-            <h3 class="card-title">By Car</h3>
-            <form id="statsCarForm" class="form-grid inline">
-              <div class="form-row">
-                <label>Car Number</label>
-                <input id="statsCarNumber" type="text">
+            <div class="card-header-row collapsible-header" data-target="statsCarBody">
+              <div>
+                <h3 class="card-title">By Car</h3>
               </div>
-              <button type="submit" class="btn-primary">Calculate</button>
-            </form>
-            <div id="statsCarResult" class="info-text"></div>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="statsCarBody" class="collapsible-body open">
+              <form id="statsCarForm" class="form-grid inline">
+                <div class="form-row">
+                  <label>Car Number</label>
+                  <input id="statsCarNumber" type="text">
+                </div>
+                <button type="submit" class="btn-primary">Calculate</button>
+              </form>
+              <div id="statsCarResult" class="info-text"></div>
+            </div>
           </div>
         </div>
 
-        <!-- SETTINGS VIEW -->
+        <!-- SETTINGS -->
         <div id="viewSettings" class="view">
           <div class="view-header">
             <h2>Settings</h2>
@@ -281,57 +347,69 @@
           </div>
 
           <div class="card">
-            <h3 class="card-title">Change Password</h3>
-            <form id="changePasswordForm" class="form-grid">
-              <div class="form-row">
-                <label>Current Password</label>
-                <input id="oldPassword" type="password">
+            <div class="card-header-row collapsible-header" data-target="changePasswordBody">
+              <div>
+                <h3 class="card-title">Change Password</h3>
               </div>
-              <div class="form-row">
-                <label>New Password</label>
-                <input id="newPassword" type="password">
-              </div>
-              <div class="form-row">
-                <label>Confirm New Password</label>
-                <input id="confirmPassword" type="password">
-              </div>
-              <button type="submit" class="btn-primary full-width">Update</button>
-              <div id="changePasswordError" class="error-text"></div>
-              <div id="changePasswordSuccess" class="success-text"></div>
-            </form>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="changePasswordBody" class="collapsible-body open">
+              <form id="changePasswordForm" class="form-grid">
+                <div class="form-row">
+                  <label>Current Password</label>
+                  <input id="oldPassword" type="password">
+                </div>
+                <div class="form-row">
+                  <label>New Password</label>
+                  <input id="newPassword" type="password">
+                </div>
+                <div class="form-row">
+                  <label>Confirm New Password</label>
+                  <input id="confirmPassword" type="password">
+                </div>
+                <button type="submit" class="btn-primary full-width">Update</button>
+                <div id="changePasswordError" class="error-text"></div>
+                <div id="changePasswordSuccess" class="success-text"></div>
+              </form>
+            </div>
           </div>
 
           <div class="card">
-            <h3 class="card-title">Change Phone</h3>
-            <form id="changePhoneForm" class="form-grid">
-              <div class="form-row">
-                <label>New Phone</label>
-                <input id="newPhone" type="text">
+            <div class="card-header-row collapsible-header" data-target="changePhoneBody">
+              <div>
+                <h3 class="card-title">Change Phone</h3>
               </div>
-              <button type="submit" class="btn-primary full-width">Update</button>
-              <div id="changePhoneError" class="error-text"></div>
-              <div id="changePhoneSuccess" class="success-text"></div>
-            </form>
+              <span class="collapse-indicator">▼</span>
+            </div>
+            <div id="changePhoneBody" class="collapsible-body open">
+              <form id="changePhoneForm" class="form-grid">
+                <div class="form-row">
+                  <label>New Phone</label>
+                  <input id="newPhone" type="text">
+                </div>
+                <button type="submit" class="btn-primary full-width">Update</button>
+                <div id="changePhoneError" class="error-text"></div>
+                <div id="changePhoneSuccess" class="success-text"></div>
+              </form>
+            </div>
           </div>
         </div>
 
       </section>
-
     </main>
 
     <!-- FOOTER -->
     <footer class="app-footer">
       <div class="footer-left">
-        <span>© Al Masoud Group</span>
+        <span>© Al Masaood Group</span>
       </div>
       <div class="footer-right">
-        <span>Car Movement System v2.1</span>
+        <span>Developed by Mohamed Saad · v2.1.1</span>
       </div>
     </footer>
 
   </div>
 
-  <!-- SCRIPTS -->
   <script src="main.js"></script>
 </body>
 </html>
