@@ -1,390 +1,469 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <title>Car Movement System v1</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b3c6f" />
+  <meta charset="UTF-8" />
+  <title>Car Movement System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Main CSS -->
   <link rel="stylesheet" href="main.css" />
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
+
+  <!-- Firebase SDK (Modules) -->
+  <script type="module" src="main.js"></script>
 </head>
+
 <body>
-  <div id="app">
+
+  <!-- ========================= -->
+  <!--  LOGIN SCREEN            -->
+  <!-- ========================= -->
+  <section id="screenLogin" class="screen active">
+    <div class="center-container">
+      <img src="al-masaood-logo.png" class="logo-large" alt="Logo" />
+      <h1 class="login-title">Car Movement System</h1>
+      <h2 class="login-subtitle">تسجيل الدخول</h2>
+
+      <form id="loginForm" class="card login-card">
+        <input id="loginUsername" type="text" placeholder="اسم المستخدم" required />
+        <input id="loginPassword" type="password" placeholder="كلمة المرور" required />
+        <button type="submit" class="btn-primary full-width">دخول</button>
+        <div id="loginError" class="error-text"></div>
+      </form>
+
+      <div class="login-footer">
+        <span>Al Masaood Group</span>
+        <span>v1</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= -->
+  <!--  HOME SCREEN              -->
+  <!-- ========================= -->
+  <section id="screenHome" class="screen">
+
+    <!-- Sticky Header -->
     <header class="app-header">
       <div class="header-left">
-        <img src="al-masaood-logo.png" alt="Logo" class="logo" />
+        <img src="al-masaood-logo.png" class="logo" alt="Logo" />
         <div class="header-title">
           <div class="app-name">Car Movement System</div>
           <div class="app-subtitle">Al Masaood Group</div>
         </div>
       </div>
+
       <div class="header-right">
-        <button id="headerSearchBtn" class="text-btn">Search</button>
+        <button id="headerSearchBtn" class="text-btn">بحث</button>
+        <button id="logoutBtn" class="text-btn danger">خروج</button>
       </div>
     </header>
 
-    <main class="app-main">
-      <section id="screenLogin" class="screen active">
-        <div class="center-container">
-          <img src="al-masaood-logo.png" alt="Logo" class="logo-large" />
-          <h1 class="login-title">Car Movement System</h1>
-          <h2 class="login-subtitle">Sign in</h2>
+    <!-- User Bar -->
+    <div class="user-bar">
+      <div>
+        <div id="currentUserName" class="user-name"></div>
+        <div id="currentUserRole" class="user-role"></div>
+      </div>
+    </div>
 
-          <form id="loginForm" class="card login-card">
-            <input id="loginUsername" type="text" placeholder="Username or Email" required />
-            <input id="loginPassword" type="password" placeholder="Password" required />
-            <button type="submit" class="btn-primary full-width">Login</button>
-            <div id="loginError" class="error-text"></div>
+    <!-- Tabs -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" data-view="viewMovements">الحركات</button>
+      <button class="tab-btn" data-view="viewMembers">الأعضاء</button>
+      <button class="tab-btn" data-view="viewMessages">الرسائل</button>
+      <button class="tab-btn" data-view="viewStatistics">الإحصائيات</button>
+      <button class="tab-btn" data-view="viewSettings">الإعدادات</button>
+    </div>
+
+    <!-- ========================= -->
+    <!--  Movements View           -->
+    <!-- ========================= -->
+    <div id="viewMovements" class="view active">
+
+      <div class="view-header">
+        <h2>تسجيل حركة</h2>
+        <div class="view-header-sub">إضافة حركة جديدة</div>
+      </div>
+
+      <!-- Add Movement -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="addMovementBody">
+          <div>
+            <h3 class="card-title">إضافة حركة</h3>
+            <div class="card-subtitle">إدخال بيانات الحركة</div>
+          </div>
+          <span class="collapse-indicator">▲</span>
+        </div>
+
+        <div id="addMovementBody" class="collapsible-body open">
+          <form id="addMovementForm" class="form-grid">
+
+            <div class="form-row">
+              <label>النوع</label>
+              <select id="movementType">
+                <option value="receive">استلام</option>
+                <option value="deliver">تسليم</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label>رقم السيارة</label>
+              <input id="movementCarNumber" type="text" required />
+            </div>
+
+            <div class="form-row">
+              <label>اللوحة</label>
+              <input id="movementPlate" type="text" required />
+            </div>
+
+            <div class="form-row">
+              <label>السائق</label>
+              <select id="movementDriverSelect"></select>
+            </div>
+
+            <div class="form-row">
+              <label>ملاحظات</label>
+              <textarea id="movementNotes"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary full-width">حفظ الحركة</button>
+            <div id="addMovementError" class="error-text"></div>
+            <div id="addMovementSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Movements List -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="movementsListBody">
+          <div>
+            <h3 class="card-title">قائمة الحركات</h3>
+            <div class="card-subtitle">آخر الحركات المسجلة</div>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="movementsListBody" class="collapsible-body">
+          <div id="movementsList" class="list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--  Members View             -->
+    <!-- ========================= -->
+    <div id="viewMembers" class="view">
+
+      <div class="view-header">
+        <h2>الأعضاء</h2>
+        <div class="view-header-sub">إدارة المستخدمين والسائقين</div>
+      </div>
+
+      <!-- Add Member -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="addMemberBody">
+          <div>
+            <h3 class="card-title">إضافة عضو</h3>
+            <div class="card-subtitle">إضافة مستخدم أو سائق</div>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="addMemberBody" class="collapsible-body">
+          <form id="addMemberForm" class="form-grid">
+
+            <div class="form-row">
+              <label>اسم المستخدم</label>
+              <input id="memberUsername" type="text" required />
+            </div>
+
+            <div class="form-row">
+              <label>كلمة المرور</label>
+              <input id="memberPassword" type="password" required />
+            </div>
+
+            <div class="form-row">
+              <label>الاسم الظاهر</label>
+              <input id="memberDisplayName" type="text" required />
+            </div>
+
+            <div class="form-row">
+              <label>رقم الهاتف</label>
+              <input id="memberPhone" type="text" />
+            </div>
+
+            <div class="form-row">
+              <label>الدور</label>
+              <select id="memberRole">
+                <option value="admin">مدير</option>
+                <option value="user">مستخدم</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-primary full-width">حفظ</button>
+            <div id="addMemberError" class="error-text"></div>
+            <div id="addMemberSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Members List -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="membersListBody">
+          <div>
+            <h3 class="card-title">قائمة الأعضاء</h3>
+            <div class="card-subtitle">جميع المستخدمين والسائقين</div>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="membersListBody" class="collapsible-body">
+          <div id="membersList" class="list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--  Messages View            -->
+    <!-- ========================= -->
+    <div id="viewMessages" class="view">
+
+      <div class="view-header">
+        <h2>الرسائل</h2>
+        <div class="view-header-sub">مراسلة داخلية بين المستخدمين</div>
+      </div>
+
+      <!-- Send Message -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="sendMessageBody">
+          <div>
+            <h3 class="card-title">إرسال رسالة</h3>
+            <div class="card-subtitle">إرسال رسالة لعضو أو للجميع</div>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="sendMessageBody" class="collapsible-body">
+          <form id="sendMessageForm" class="form-grid">
+
+            <div class="form-row">
+              <label>إلى</label>
+              <select id="messageTarget"></select>
+            </div>
+
+            <div class="form-row">
+              <label>الرسالة</label>
+              <textarea id="messageText"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary full-width">إرسال</button>
+            <div id="sendMessageError" class="error-text"></div>
+            <div id="sendMessageSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Messages List -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="messagesListBody">
+          <div>
+            <h3 class="card-title">قائمة الرسائل</h3>
+            <div class="card-subtitle">آخر الرسائل</div>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="messagesListBody" class="collapsible-body">
+          <div id="messagesList" class="list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--  Statistics View          -->
+    <!-- ========================= -->
+    <div id="viewStatistics" class="view">
+
+      <div class="view-header">
+        <h2>الإحصائيات</h2>
+        <div class="view-header-sub">تحليل شامل للحركات</div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="statsSummaryBody">
+          <div>
+            <h3 class="card-title">ملخص</h3>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="statsSummaryBody" class="collapsible-body">
+          <div id="statsSummaryBox"></div>
+        </div>
+      </div>
+
+      <!-- By Date Range -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="statsRangeBody">
+          <div>
+            <h3 class="card-title">حسب التاريخ</h3>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="statsRangeBody" class="collapsible-body">
+          <form id="statsRangeForm" class="form-grid inline">
+            <div class="form-row">
+              <label>من</label>
+              <input id="statsFromDate" type="date" />
+            </div>
+
+            <div class="form-row">
+              <label>إلى</label>
+              <input id="statsToDate" type="date" />
+            </div>
+
+            <button type="submit" class="btn-primary">حساب</button>
           </form>
 
-          <div class="login-footer">
-            <span>Powered by Al Masaood</span>
-            <span>v1</span>
-          </div>
+          <div id="statsRangeResult" class="info-text"></div>
         </div>
-      </section>
+      </div>
 
-      <section id="screenHome" class="screen">
-        <div class="user-bar">
+      <!-- By User -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="statsUserBody">
           <div>
-            <div id="currentUserName" class="user-name"></div>
-            <div id="currentUserRole" class="user-role"></div>
+            <h3 class="card-title">حسب المستخدم</h3>
           </div>
-          <button id="logoutBtn" class="text-btn danger">Logout</button>
+          <span class="collapse-indicator">▼</span>
         </div>
 
-        <div id="searchOverlay" class="search-overlay">
-          <div class="search-panel card">
-            <div class="search-header">
-              <input id="globalSearchInput" type="text" placeholder="Search movements, members, messages..." />
-              <button id="closeSearchBtn" class="text-btn">Close</button>
+        <div id="statsUserBody" class="collapsible-body">
+          <form id="statsUserForm" class="form-grid inline">
+            <div class="form-row">
+              <label>المستخدم</label>
+              <select id="statsUserSelect"></select>
             </div>
-            <div id="globalSearchResults" class="search-results"></div>
-          </div>
+
+            <button type="submit" class="btn-primary">حساب</button>
+          </form>
+
+          <div id="statsUserResult" class="info-text"></div>
         </div>
-
-        <div class="tabs-bar">
-          <button class="tab-btn active" data-view="viewMovements">Movements</button>
-          <button class="tab-btn" data-view="viewMembers">Members</button>
-          <button class="tab-btn" data-view="viewMessages">Messages</button>
-          <button class="tab-btn" data-view="viewStatistics">Statistics</button>
-          <button class="tab-btn" data-view="viewSettings">Settings</button>
-        </div>
-
-        <div id="viewMovements" class="view active">
-          <div class="view-header">
-            <h2>Movements</h2>
-            <div class="view-header-sub">Main operations screen</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="addMovementBody">
-              <div>
-                <h3 class="card-title">Add Movement</h3>
-                <div class="card-subtitle">Create new movement record</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="addMovementBody" class="collapsible-body open">
-              <form id="addMovementForm" class="form-grid">
-                <div class="form-row">
-                  <label>Type</label>
-                  <select id="movementType">
-                    <option value="receive">Receive</option>
-                    <option value="deliver">Deliver</option>
-                  </select>
-                </div>
-                <div class="form-row">
-                  <label>Car Number</label>
-                  <input id="movementCarNumber" type="text" required />
-                </div>
-                <div class="form-row">
-                  <label>Plate</label>
-                  <input id="movementPlate" type="text" required />
-                </div>
-                <div class="form-row">
-                  <label>Driver (from members)</label>
-                  <select id="movementDriverSelect"></select>
-                </div>
-                <div class="form-row">
-                  <label>Notes</label>
-                  <textarea id="movementNotes"></textarea>
-                </div>
-                <button type="submit" class="btn-primary full-width">Save Movement</button>
-                <div id="addMovementError" class="error-text"></div>
-                <div id="addMovementSuccess" class="success-text"></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="movementsListBody">
-              <div>
-                <h3 class="card-title">Movements List</h3>
-                <div class="card-subtitle">Latest movements</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="movementsListBody" class="collapsible-body open">
-              <div id="movementsList" class="list"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="viewMembers" class="view">
-          <div class="view-header">
-            <h2>Members</h2>
-            <div class="view-header-sub">Users & drivers</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="addMemberBody">
-              <div>
-                <h3 class="card-title">Add Member</h3>
-                <div class="card-subtitle">Create new user/driver</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="addMemberBody" class="collapsible-body open">
-              <form id="addMemberForm" class="form-grid">
-                <div class="form-row">
-                  <label>Username</label>
-                  <input id="memberUsername" type="text" required />
-                </div>
-                <div class="form-row">
-                  <label>Password</label>
-                  <input id="memberPassword" type="password" required />
-                </div>
-                <div class="form-row">
-                  <label>Display Name</label>
-                  <input id="memberDisplayName" type="text" required />
-                </div>
-                <div class="form-row">
-                  <label>Phone</label>
-                  <input id="memberPhone" type="text" />
-                </div>
-                <div class="form-row">
-                  <label>Role</label>
-                  <select id="memberRole">
-                    <option value="admin">Admin</option>
-                    <option value="user">User</option>
-                  </select>
-                </div>
-                <button type="submit" class="btn-primary full-width">Save Member</button>
-                <div id="addMemberError" class="error-text"></div>
-                <div id="addMemberSuccess" class="success-text"></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="membersListBody">
-              <div>
-                <h3 class="card-title">Members List</h3>
-                <div class="card-subtitle">All users & drivers</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="membersListBody" class="collapsible-body open">
-              <div id="membersList" class="list"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="viewMessages" class="view">
-          <div class="view-header">
-            <h2>Messages</h2>
-            <div class="view-header-sub">Internal communication</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="sendMessageBody">
-              <div>
-                <h3 class="card-title">Send Message</h3>
-                <div class="card-subtitle">Send to member or all</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="sendMessageBody" class="collapsible-body open">
-              <form id="sendMessageForm" class="form-grid">
-                <div class="form-row">
-                  <label>To</label>
-                  <select id="messageTarget"></select>
-                </div>
-                <div class="form-row">
-                  <label>Message</label>
-                  <textarea id="messageText"></textarea>
-                </div>
-                <button type="submit" class="btn-primary full-width">Send</button>
-                <div id="sendMessageError" class="error-text"></div>
-                <div id="sendMessageSuccess" class="success-text"></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="messagesListBody">
-              <div>
-                <h3 class="card-title">Messages List</h3>
-                <div class="card-subtitle">Latest messages</div>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="messagesListBody" class="collapsible-body open">
-              <div id="messagesList" class="list"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="viewStatistics" class="view">
-          <div class="view-header">
-            <h2>Statistics</h2>
-            <div class="view-header-sub">Overview & analysis</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="statsSummaryBody">
-              <div>
-                <h3 class="card-title">Summary</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="statsSummaryBody" class="collapsible-body open">
-              <div id="statsSummaryBox"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="statsRangeBody">
-              <div>
-                <h3 class="card-title">By Date Range</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="statsRangeBody" class="collapsible-body open">
-              <form id="statsRangeForm" class="form-grid inline">
-                <div class="form-row">
-                  <label>From</label>
-                  <input id="statsFromDate" type="date" />
-                </div>
-                <div class="form-row">
-                  <label>To</label>
-                  <input id="statsToDate" type="date" />
-                </div>
-                <button type="submit" class="btn-primary">Calculate</button>
-              </form>
-              <div id="statsRangeResult" class="info-text"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="statsUserBody">
-              <div>
-                <h3 class="card-title">By User</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="statsUserBody" class="collapsible-body open">
-              <form id="statsUserForm" class="form-grid inline">
-                <div class="form-row">
-                  <label>User</label>
-                  <select id="statsUserSelect"></select>
-                </div>
-                <button type="submit" class="btn-primary">Calculate</button>
-              </form>
-              <div id="statsUserResult" class="info-text"></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="statsCarBody">
-              <div>
-                <h3 class="card-title">By Car</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="statsCarBody" class="collapsible-body open">
-              <form id="statsCarForm" class="form-grid inline">
-                <div class="form-row">
-                  <label>Car Number</label>
-                  <input id="statsCarNumber" type="text" />
-                </div>
-                <button type="submit" class="btn-primary">Calculate</button>
-              </form>
-              <div id="statsCarResult" class="info-text"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="viewSettings" class="view">
-          <div class="view-header">
-            <h2>Settings</h2>
-            <div class="view-header-sub">Account & app</div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="changePasswordBody">
-              <div>
-                <h3 class="card-title">Change Password</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="changePasswordBody" class="collapsible-body open">
-              <form id="changePasswordForm" class="form-grid">
-                <div class="form-row">
-                  <label>Current Password</label>
-                  <input id="oldPassword" type="password" />
-                </div>
-                <div class="form-row">
-                  <label>New Password</label>
-                  <input id="newPassword" type="password" />
-                </div>
-                <div class="form-row">
-                  <label>Confirm New Password</label>
-                  <input id="confirmPassword" type="password" />
-                </div>
-                <button type="submit" class="btn-primary full-width">Update</button>
-                <div id="changePasswordError" class="error-text"></div>
-                <div id="changePasswordSuccess" class="success-text"></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header-row collapsible-header" data-target="changePhoneBody">
-              <div>
-                <h3 class="card-title">Change Phone</h3>
-              </div>
-              <span class="collapse-indicator">▼</span>
-            </div>
-            <div id="changePhoneBody" class="collapsible-body open">
-              <form id="changePhoneForm" class="form-grid">
-                <div class="form-row">
-                  <label>New Phone</label>
-                  <input id="newPhone" type="text" />
-                </div>
-                <button type="submit" class="btn-primary full-width">Update</button>
-                <div id="changePhoneError" class="error-text"></div>
-                <div id="changePhoneSuccess" class="success-text"></div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-      </section>
-    </main>
-
-    <footer class="app-footer">
-      <div class="footer-left">
-        <span>© Al Masaood Group</span>
       </div>
-      <div class="footer-right">
-        <span>Developed by Mohamed Saad · v1</span>
+
+      <!-- By Car -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="statsCarBody">
+          <div>
+            <h3 class="card-title">حسب السيارة</h3>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="statsCarBody" class="collapsible-body">
+          <form id="statsCarForm" class="form-grid inline">
+            <div class="form-row">
+              <label>رقم السيارة</label>
+              <input id="statsCarNumber" type="text" />
+            </div>
+
+            <button type="submit" class="btn-primary">حساب</button>
+          </form>
+
+          <div id="statsCarResult" class="info-text"></div>
+        </div>
       </div>
-    </footer>
+
+    </div>
+
+    <!-- ========================= -->
+    <!--  Settings View            -->
+    <!-- ========================= -->
+    <div id="viewSettings" class="view">
+
+      <div class="view-header">
+        <h2>الإعدادات</h2>
+        <div class="view-header-sub">إدارة الحساب والتطبيق</div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="changePasswordBody">
+          <div>
+            <h3 class="card-title">تغيير كلمة المرور</h3>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="changePasswordBody" class="collapsible-body">
+          <form id="changePasswordForm" class="form-grid">
+
+            <div class="form-row">
+              <label>كلمة المرور الحالية</label>
+              <input id="oldPassword" type="password" />
+            </div>
+
+            <div class="form-row">
+              <label>كلمة المرور الجديدة</label>
+              <input id="newPassword" type="password" />
+            </div>
+
+            <div class="form-row">
+              <label>تأكيد كلمة المرور</label>
+              <input id="confirmPassword" type="password" />
+            </div>
+
+            <button type="submit" class="btn-primary full-width">تحديث</button>
+            <div id="changePasswordError" class="error-text"></div>
+            <div id="changePasswordSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Change Phone -->
+      <div class="card">
+        <div class="card-header-row collapsible-header" data-target="changePhoneBody">
+          <div>
+            <h3 class="card-title">تغيير رقم الهاتف</h3>
+          </div>
+          <span class="collapse-indicator">▼</span>
+        </div>
+
+        <div id="changePhoneBody" class="collapsible-body">
+          <form id="changePhoneForm" class="form-grid">
+
+            <div class="form-row">
+              <label>رقم الهاتف الجديد</label>
+              <input id="newPhone" type="text" />
+            </div>
+
+            <button type="submit" class="btn-primary full-width">تحديث</button>
+            <div id="changePhoneError" class="error-text"></div>
+            <div id="changePhoneSuccess" class="success-text"></div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- Search Overlay -->
+  <div id="searchOverlay" class="search-overlay">
+    <div class="search-panel card">
+      <div class="search-header">
+        <input id="globalSearchInput" type="text" placeholder="بحث..." />
+        <button id="closeSearchBtn" class="text-btn">إغلاق</button>
+      </div>
+      <div id="globalSearchResults" class="search-results"></div>
+    </div>
   </div>
 
-  <script src="main.js"></script>
 </body>
 </html>
