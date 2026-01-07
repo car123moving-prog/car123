@@ -1,20 +1,29 @@
-const CACHE_NAME = "cms-v1.0.0-cache";
-const ASSETS = [
-  "index.html",
-  "main.css",
-  "main.js",
-  "manifest.json",
-  "al-masaood-logo.png"
-];
+// service-worker.js — Simple Auto-Update SW
 
+const CACHE_NAME = "car-movement-v1";
+
+// عند التثبيت: حذف أي كاش قديم
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      )
+    )
+  );
+  self.skipWaiting();
 });
 
+// عند التفعيل: تفعيل النسخة الجديدة فورًا
 self.addEventListener("activate", (event) => {
-  event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))));
+  event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+// لا نستخدم fetch caching — نسمح للمتصفح بجلب الملفات مباشرة
+self.addEventListener("fetch", () => {
+  // intentionally empty
 });
