@@ -9,11 +9,6 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b3c6f">
 
-  <!-- iOS PWA SUPPORT -->
-  <link rel="apple-touch-icon" href="al-masaood-logo.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
   <!-- Styles -->
   <link rel="stylesheet" href="main.css">
 </head>
@@ -24,7 +19,7 @@
     <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <img src="al-masaood-logo.png" class="logo">
+        <img src="al-masaood-logo.png" alt="Al Masaood" class="logo">
         <div class="header-title">
           <div class="app-name">Car Movement System</div>
           <div class="app-subtitle">Al Masaood Group</div>
@@ -41,7 +36,7 @@
       <!-- LOGIN -->
       <section id="screenLogin" class="screen active">
         <div class="center-container">
-          <img src="al-masaood-logo.png" class="logo-large">
+          <img src="al-masaood-logo.png" alt="Al Masaood" class="logo-large">
           <h1 class="login-title">Car Movement System</h1>
           <h2 class="login-subtitle">Sign in</h2>
 
@@ -59,7 +54,7 @@
         </div>
       </section>
 
-      <!-- HOME -->
+      <!-- APP -->
       <section id="screenHome" class="screen">
 
         <!-- USER BAR -->
@@ -75,14 +70,14 @@
         <div id="searchOverlay" class="search-overlay">
           <div class="search-panel card">
             <div class="search-header">
-              <input id="globalSearchInput" type="text" placeholder="Search...">
+              <input id="globalSearchInput" type="text" placeholder="Search movements, members, messages...">
               <button id="closeSearchBtn" class="text-btn">Close</button>
             </div>
             <div id="globalSearchResults" class="search-results"></div>
           </div>
         </div>
 
-        <!-- TABS -->
+        <!-- TABS (BIG RECTANGULAR BUTTONS) -->
         <div class="tabs-bar">
           <button class="tab-btn active" data-view="viewMovements">Movements</button>
           <button class="tab-btn" data-view="viewMembers">Members</button>
@@ -92,16 +87,21 @@
         </div>
 
         <!-- VIEWS -->
+
+        <!-- MOVEMENTS -->
         <div id="viewMovements" class="view active">
           <div class="view-header">
             <h2>Movements</h2>
-            <div class="view-header-sub">Main operations</div>
+            <div class="view-header-sub">Main operations screen</div>
           </div>
 
           <!-- ADD MOVEMENT -->
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="addMovementBody">
-              <h3 class="card-title">Add Movement</h3>
+              <div>
+                <h3 class="card-title">Add Movement</h3>
+                <div class="card-subtitle">Create new movement record</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="addMovementBody" class="collapsible-body open">
@@ -122,14 +122,14 @@
                   <input id="movementPlate" type="text" required>
                 </div>
                 <div class="form-row">
-                  <label>Driver</label>
+                  <label>Driver (from members)</label>
                   <select id="movementDriverSelect"></select>
                 </div>
                 <div class="form-row">
                   <label>Notes</label>
                   <textarea id="movementNotes"></textarea>
                 </div>
-                <button type="submit" class="btn-primary full-width">Save</button>
+                <button type="submit" class="btn-primary full-width">Save Movement</button>
                 <div id="addMovementError" class="error-text"></div>
                 <div id="addMovementSuccess" class="success-text"></div>
               </form>
@@ -139,7 +139,10 @@
           <!-- MOVEMENTS LIST -->
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="movementsListBody">
-              <h3 class="card-title">Movements List</h3>
+              <div>
+                <h3 class="card-title">Movements List</h3>
+                <div class="card-subtitle">Latest movements</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="movementsListBody" class="collapsible-body open">
@@ -152,11 +155,15 @@
         <div id="viewMembers" class="view">
           <div class="view-header">
             <h2>Members</h2>
+            <div class="view-header-sub">Users & drivers</div>
           </div>
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="addMemberBody">
-              <h3 class="card-title">Add Member</h3>
+              <div>
+                <h3 class="card-title">Add Member</h3>
+                <div class="card-subtitle">Create new user/driver</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="addMemberBody" class="collapsible-body open">
@@ -184,7 +191,7 @@
                     <option value="user">User</option>
                   </select>
                 </div>
-                <button type="submit" class="btn-primary full-width">Save</button>
+                <button type="submit" class="btn-primary full-width">Save Member</button>
                 <div id="addMemberError" class="error-text"></div>
                 <div id="addMemberSuccess" class="success-text"></div>
               </form>
@@ -193,7 +200,10 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="membersListBody">
-              <h3 class="card-title">Members List</h3>
+              <div>
+                <h3 class="card-title">Members List</h3>
+                <div class="card-subtitle">All users & drivers</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="membersListBody" class="collapsible-body open">
@@ -206,11 +216,15 @@
         <div id="viewMessages" class="view">
           <div class="view-header">
             <h2>Messages</h2>
+            <div class="view-header-sub">Internal communication</div>
           </div>
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="sendMessageBody">
-              <h3 class="card-title">Send Message</h3>
+              <div>
+                <h3 class="card-title">Send Message</h3>
+                <div class="card-subtitle">Send to member or all</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="sendMessageBody" class="collapsible-body open">
@@ -232,7 +246,10 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="messagesListBody">
-              <h3 class="card-title">Messages List</h3>
+              <div>
+                <h3 class="card-title">Messages List</h3>
+                <div class="card-subtitle">Latest messages</div>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="messagesListBody" class="collapsible-body open">
@@ -245,11 +262,14 @@
         <div id="viewStatistics" class="view">
           <div class="view-header">
             <h2>Statistics</h2>
+            <div class="view-header-sub">Overview & analysis</div>
           </div>
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="statsSummaryBody">
-              <h3 class="card-title">Summary</h3>
+              <div>
+                <h3 class="card-title">Summary</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="statsSummaryBody" class="collapsible-body open">
@@ -259,7 +279,9 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="statsRangeBody">
-              <h3 class="card-title">By Date Range</h3>
+              <div>
+                <h3 class="card-title">By Date Range</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="statsRangeBody" class="collapsible-body open">
@@ -280,7 +302,9 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="statsUserBody">
-              <h3 class="card-title">By User</h3>
+              <div>
+                <h3 class="card-title">By User</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="statsUserBody" class="collapsible-body open">
@@ -297,7 +321,9 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="statsCarBody">
-              <h3 class="card-title">By Car</h3>
+              <div>
+                <h3 class="card-title">By Car</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="statsCarBody" class="collapsible-body open">
@@ -317,11 +343,14 @@
         <div id="viewSettings" class="view">
           <div class="view-header">
             <h2>Settings</h2>
+            <div class="view-header-sub">Account & app</div>
           </div>
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="changePasswordBody">
-              <h3 class="card-title">Change Password</h3>
+              <div>
+                <h3 class="card-title">Change Password</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="changePasswordBody" class="collapsible-body open">
@@ -347,7 +376,9 @@
 
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="changePhoneBody">
-              <h3 class="card-title">Change Phone</h3>
+              <div>
+                <h3 class="card-title">Change Phone</h3>
+              </div>
               <span class="collapse-indicator">▼</span>
             </div>
             <div id="changePhoneBody" class="collapsible-body open">
@@ -369,8 +400,12 @@
 
     <!-- FOOTER -->
     <footer class="app-footer">
-      <div>© Al Masaood Group</div>
-      <div>Developed by Mohamed Saad · v2.1.1</div>
+      <div class="footer-left">
+        <span>© Al Masaood Group</span>
+      </div>
+      <div class="footer-right">
+        <span>Developed by Mohamed Saad · v2.1.1</span>
+      </div>
     </footer>
 
   </div>
