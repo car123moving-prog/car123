@@ -1,22 +1,401 @@
-{
-  "name": "Car Movement System v2.1.1",
-  "short_name": "Car Movement",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#0b3c6f",
-  "theme_color": "#0b3c6f",
-  "description": "Car Movement Management System for Al Masaood Group",
-  "icons": [
-    {
-      "src": "al-masaood-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "al-masaood-logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+      const text = document.createElement("div");
+      text.className = "message-text";
+      text.textContent = msg.text;
+
+      const meta = document.createElement("div");
+      meta.className = "message-meta";
+      meta.textContent = `${msg.date} | To: ${msg.toLabel}`;
+
+      div.appendChild(from);
+      div.appendChild(text);
+      div.appendChild(meta);
+
+      container.appendChild(div);
+    });
 }
+
+function initMessages() {
+  renderMessageTargets();
+  renderMessagesList();
+
+  const form = document.getElementById("sendMessageForm");
+  const errorBox = document.getElementById("sendMessageError");
+  const successBox = document.getElementById("sendMessageSuccess");
+  const textArea = document.getElementById("messageText");
+
+  if (!form) return;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+
+    const target = document.getElementById("messageTarget").value;
+    const text = textArea.value.trim();
+
+    if (!text) {
+      showMessage(errorBox, "Message cannot be empty.");
+      return;
+    }
+
+    const users = getArray(STORAGE_KEYS.USERS);
+    let toLabel = "All";
+
+    if (target !== "all") {
+      const u = users.find((x) => x.username === target);
+      toLabel = u ? `${u.displayName} (${u.username})` : target;
+    }
+
+    const messages = getArray(STORAGE_KEYS.MESSAGES);
+    const now = getGulfNow();
+
+    messages.push({
+      id: Date.now(),
+      from: currentUser.displayName || currentUser.username,
+      to: target,
+      toLabel,
+      text,
+      date: formatDateTime(now),
+    });
+
+    saveArray(STORAGE_KEYS.MESSAGES, messages);
+    form.reset();
+    renderMessagesList();
+    showMessage(successBox, "Message sent.", "success");
+  });
+}
+
+/* ============================================================
+   STATISTICS
+============================================================ */
+function updateStatsSummary() {
+  const box = document.getElementById("statsSummaryBox");
+  if (!box) return;
+
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  const total = movements.length;
+  const received = movements.filter((m) => m.type === "receive").length;
+  const delivered = movements.filter((m) => m.type === "deliver").length;
+
+  box.innerHTML = `
+    <div class="info-text">Total movements: ${total}</div>
+    <div class="info-text">Received: ${received}</div>
+    <div class="info-text">Delivered: ${delivered}</div>
+  `;
+}
+
+function initStatistics() {
+  updateStatsSummary();
+  renderStatsUsers();
+
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
+  /* By Date Range */
+  const formRange = document.getElementById("statsRangeForm");
+  const rangeResult = document.getElementById("statsRangeResult");
+
+  if (formRange) {
+    formRange.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const fromDate = document.getElementById("statsFromDate").value;
+      const toDate = document.getElementById("statsToDate").value;
+
+      if (!fromDate || !toDate) {
+        rangeResult.textContent = "Please select both dates.";
+        return;
+      }
+
+      const fromTime = new Date(fromDate + "T00:00:00").getTime();
+      const toTime = new Date(toDate + "T23:59:59").getTime();
+
+      const filtered = movements.filter((m) => {
+        const t = new Date(m.date.replace(" ", "T")).getTime();
+        return t >= fromTime && t <= toTime;
+      });
+
+      rangeResult.textContent = `Movements in range: ${filtered.length}`;
+    });
+  }
+
+  /* By User */
+  const formUser = document.getElementById("statsUserForm");
+  const userResult = document.getElementById("statsUserResult");
+
+  if (formUser) {
+    formUser.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const selected = document.getElementById("statsUserSelect").value;
+
+      const count = movements.filter(
+        (m) => m.createdBy === selected || m.driverUsername === selected
+      ).length;
+
+      userResult.textContent = `Movements related to this user: ${count}`;
+    });
+  }
+
+  /* By Car */
+  const formCar = document.getElementById("statsCarForm");
+  const carResult = document.getElementById("statsCarResult");
+
+  if (formCar) {
+    formCar.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const carNumber = document.getElementById("statsCarNumber").value.trim();
+
+      if (!carNumber) {
+        carResult.textContent = "Please enter car number.";
+        return;
+      }
+
+      const count = movements.filter(
+        (m) => m.carNumber.toLowerCase() === carNumber.toLowerCase()
+      ).length;
+
+      carResult.textContent = `Movements for this car: ${count}`;
+    });
+  }
+}
+
+/* ============================================================
+   SETTINGS
+============================================================ */
+function initSettings() {
+  /* Change Password */
+  const passForm = document.getElementById("changePasswordForm");
+  const passError = document.getElementById("changePasswordError");
+  const passSuccess = document.getElementById("changePasswordSuccess");
+
+  if (passForm) {
+    passForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const oldPassword = document.getElementById("oldPassword").value.trim();
+      const newPassword = document.getElementById("newPassword").value.trim();
+      const confirmPassword = document
+        .getElementById("confirmPassword")
+        .value.trim();
+
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        showMessage(passError, "Please fill all fields.");
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        showMessage(passError, "New passwords do not match.");
+        return;
+      }
+
+      const users = getArray(STORAGE_KEYS.USERS);
+      const idx = users.findIndex((u) => u.username === currentUser.username);
+
+      if (idx === -1) {
+        showMessage(passError, "User not found.");
+        return;
+      }
+
+      if (users[idx].password !== oldPassword) {
+        showMessage(passError, "Current password is incorrect.");
+        return;
+      }
+
+      users[idx].password = newPassword;
+      saveArray(STORAGE_KEYS.USERS, users);
+
+      currentUser.password = newPassword;
+      saveSession(currentUser);
+
+      showMessage(passSuccess, "Password updated.", "success");
+      passForm.reset();
+    });
+  }
+
+  /* Change Phone */
+  const phoneForm = document.getElementById("changePhoneForm");
+  const phoneError = document.getElementById("changePhoneError");
+  const phoneSuccess = document.getElementById("changePhoneSuccess");
+
+  if (phoneForm) {
+    phoneForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const newPhone = document.getElementById("newPhone").value.trim();
+
+      if (!newPhone) {
+        showMessage(phoneError, "Please enter phone.");
+        return;
+      }
+
+      const users = getArray(STORAGE_KEYS.USERS);
+      const idx = users.findIndex((u) => u.username === currentUser.username);
+
+      if (idx === -1) {
+        showMessage(phoneError, "User not found.");
+        return;
+      }
+
+      users[idx].phone = newPhone;
+      saveArray(STORAGE_KEYS.USERS, users);
+
+      currentUser.phone = newPhone;
+      saveSession(currentUser);
+
+      showMessage(phoneSuccess, "Phone updated.", "success");
+      phoneForm.reset();
+    });
+  }
+}
+
+/* ============================================================
+   GLOBAL SEARCH (JUMP TO ITEM)
+============================================================ */
+function initGlobalSearch() {
+  const overlay = document.getElementById("searchOverlay");
+  const openBtn = document.getElementById("headerSearchBtn");
+  const closeBtn = document.getElementById("closeSearchBtn");
+  const input = document.getElementById("globalSearchInput");
+  const box = document.getElementById("globalSearchResults");
+
+  if (!overlay || !openBtn || !closeBtn || !input || !box) return;
+
+  openBtn.addEventListener("click", () => {
+    overlay.classList.add("active");
+    input.value = "";
+    box.innerHTML = "";
+    input.focus();
+  });
+
+  closeBtn.addEventListener("click", () => {
+    overlay.classList.remove("active");
+  });
+
+  input.addEventListener("input", () => {
+    const term = input.value.trim().toLowerCase();
+    if (!term) {
+      box.innerHTML = "";
+      return;
+    }
+
+    const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+    const users = getArray(STORAGE_KEYS.USERS);
+    const messages = getArray(STORAGE_KEYS.MESSAGES);
+
+    const results = [];
+
+    /* Movements */
+    movements.forEach((m) => {
+      const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
+      if (text.includes(term)) {
+        results.push({
+          type: "movement",
+          id: m.id,
+          label: `Movement: ${m.carNumber} / ${m.plate} / ${m.driverName}`,
+        });
+      }
+    });
+
+    /* Members */
+    users.forEach((u) => {
+      const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
+      if (text.includes(term)) {
+        results.push({
+          type: "member",
+          id: u.username,
+          label: `Member: ${u.displayName} (${u.username})`,
+        });
+      }
+    });
+
+    /* Messages */
+    messages.forEach((msg) => {
+      const text = `${msg.text} ${msg.from} ${msg.toLabel}`.toLowerCase();
+      if (text.includes(term)) {
+        results.push({
+          type: "message",
+          id: msg.id,
+          label: `Message: ${msg.text}`,
+        });
+      }
+    });
+
+    /* Render results */
+    if (results.length === 0) {
+      box.innerHTML = `<div class="search-result-item">No results.</div>`;
+      return;
+    }
+
+    box.innerHTML = "";
+
+    results.forEach((r) => {
+      const div = document.createElement("div");
+      div.className = "search-result-item";
+      div.textContent = r.label;
+
+      div.addEventListener("click", () => {
+        overlay.classList.remove("active");
+
+        if (r.type === "movement") {
+          showView("viewMovements");
+          setTimeout(() => {
+            const el = document.getElementById(`movement-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+
+        if (r.type === "member") {
+          showView("viewMembers");
+          setTimeout(() => {
+            const el = document.getElementById(`member-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+
+        if (r.type === "message") {
+          showView("viewMessages");
+          setTimeout(() => {
+            const el = document.getElementById(`message-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+      });
+
+      box.appendChild(div);
+    });
+  });
+}
+
+/* ============================================================
+   LOGOUT
+============================================================ */
+function initLogout() {
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener("click", () => {
+    clearSession();
+    currentUser = null;
+    showScreen("screenLogin");
+  });
+}
+
+/* ============================================================
+   PWA REGISTRATION
+============================================================ */
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register("./service-worker.js", { scope: "./" })
+      .catch(() => {});
+  }
+}
+
+/* ============================================================
+   MAIN ENTRY
+============================================================ */
+document.addEventListener("DOMContentLoaded", () => {
+  seedInitialData();
+  registerServiceWorker();
+  initLogin();
+});
