@@ -1,3 +1,6 @@
+/* ============================================================
+   STORAGE KEYS
+============================================================ */
 const STORAGE_KEYS = {
   USERS: "cms_users",
   MOVEMENTS: "cms_movements",
@@ -5,7 +8,9 @@ const STORAGE_KEYS = {
   SESSION: "cms_session",
 };
 
-// TIMEZONE +4
+/* ============================================================
+   TIMEZONE +4 (Gulf Standard Time)
+============================================================ */
 function getGulfNow() {
   const now = new Date();
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
@@ -24,6 +29,9 @@ function formatDateTime(dt) {
   return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
 }
 
+/* ============================================================
+   LOCAL STORAGE HELPERS
+============================================================ */
 function getArray(key) {
   const raw = localStorage.getItem(key);
   if (!raw) return [];
@@ -38,6 +46,9 @@ function saveArray(key, arr) {
   localStorage.setItem(key, JSON.stringify(arr));
 }
 
+/* ============================================================
+   INITIAL DATA (SEED)
+============================================================ */
 function seedInitialData() {
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     saveArray(STORAGE_KEYS.USERS, [
@@ -57,14 +68,19 @@ function seedInitialData() {
       },
     ]);
   }
+
   if (!localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) {
     saveArray(STORAGE_KEYS.MOVEMENTS, []);
   }
+
   if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
     saveArray(STORAGE_KEYS.MESSAGES, []);
   }
 }
 
+/* ============================================================
+   SESSION
+============================================================ */
 function saveSession(user) {
   localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
 }
@@ -83,6 +99,9 @@ function clearSession() {
   localStorage.removeItem(STORAGE_KEYS.SESSION);
 }
 
+/* ============================================================
+   UI HELPERS
+============================================================ */
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.toggle("active", s.id === id);
@@ -93,6 +112,7 @@ function showView(id) {
   document.querySelectorAll(".view").forEach((v) => {
     v.classList.toggle("active", v.id === id);
   });
+
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.view === id);
   });
@@ -103,6 +123,7 @@ function showMessage(el, msg, type = "error") {
   el.textContent = msg;
   el.classList.remove("success-text", "error-text");
   el.classList.add(type === "success" ? "success-text" : "error-text");
+
   if (msg) {
     setTimeout(() => {
       el.textContent = "";
@@ -110,6 +131,9 @@ function showMessage(el, msg, type = "error") {
   }
 }
 
+/* ============================================================
+   LOGIN
+============================================================ */
 let currentUser = null;
 
 function initLogin() {
@@ -128,6 +152,7 @@ function initLogin() {
 
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
+
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
@@ -140,6 +165,7 @@ function initLogin() {
     const found = users.find(
       (u) => u.username === username && u.password === password
     );
+
     if (!found) {
       showMessage(loginError, "Invalid username or password.");
       return;
@@ -150,6 +176,9 @@ function initLogin() {
   });
 }
 
+/* ============================================================
+   ENTER APP
+============================================================ */
 function enterApp(user) {
   currentUser = user;
   showScreen("screenHome");
@@ -165,48 +194,63 @@ function enterApp(user) {
   initLogout();
 }
 
+/* ============================================================
+   USER BAR
+============================================================ */
 function updateUserBar() {
   const nameEl = document.getElementById("currentUserName");
   const roleEl = document.getElementById("currentUserRole");
+
   if (!currentUser) return;
-  if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username;
-  if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
+
+  nameEl.textContent = currentUser.displayName || currentUser.username;
+  roleEl.textContent =
+    currentUser.role === "admin" ? "Administrator" : "User";
 }
 
+/* ============================================================
+   TABS
+============================================================ */
 function initTabs() {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const viewId = btn.dataset.view;
-      showView(viewId);
+      showView(btn.dataset.view);
     });
   });
+
   showView("viewMovements");
 }
 
+/* ============================================================
+   COLLAPSIBLES
+============================================================ */
 function initCollapsibles() {
   document.querySelectorAll(".collapsible-header").forEach((header) => {
     header.addEventListener("click", () => {
       const targetId = header.getAttribute("data-target");
       const body = document.getElementById(targetId);
+
       if (!body) return;
+
       const open = body.classList.contains("open");
-      document.querySelectorAll(".collapsible-body").forEach((b) => {
-        if (b.id === targetId) {
-          b.classList.toggle("open", !open);
-        }
-      });
+      body.classList.toggle("open", !open);
+
       const indicator = header.querySelector(".collapse-indicator");
       if (indicator) indicator.textContent = open ? "▲" : "▼";
     });
   });
 }
 
-// MOVEMENTS
+/* ============================================================
+   MOVEMENTS
+============================================================ */
 function renderDriverSelect() {
   const select = document.getElementById("movementDriverSelect");
   if (!select) return;
+
   const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
+
   users.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
@@ -218,6 +262,7 @@ function renderDriverSelect() {
 function renderMovementsList() {
   const container = document.getElementById("movementsList");
   if (!container) return;
+
   const movements = getArray(STORAGE_KEYS.MOVEMENTS);
 
   if (movements.length === 0) {
@@ -226,6 +271,7 @@ function renderMovementsList() {
   }
 
   container.innerHTML = "";
+
   movements
     .slice()
     .reverse()
@@ -238,6 +284,7 @@ function renderMovementsList() {
       header.className = "list-item-header";
 
       const left = document.createElement("div");
+
       const badge = document.createElement("span");
       badge.className = "badge " + m.type;
       badge.textContent = m.type === "receive" ? "RECEIVE" : "DELIVER";
@@ -290,7 +337,8 @@ function renderMovementsList() {
       actions.appendChild(btnEdit);
       actions.appendChild(btnShare);
       actions.appendChild(btnPrint);
-      if (currentUser && currentUser.role === "admin") {
+
+      if (currentUser.role === "admin") {
         actions.appendChild(btnDelete);
       }
 
@@ -315,7 +363,6 @@ function initMovements() {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    if (!currentUser) return;
 
     const type = document.getElementById("movementType").value;
     const carNumber = document.getElementById("movementCarNumber").value.trim();
@@ -349,9 +396,11 @@ function initMovements() {
 
     movements.push(movement);
     saveArray(STORAGE_KEYS.MOVEMENTS, movements);
+
     renderMovementsList();
     form.reset();
     renderDriverSelect();
+
     showMessage(successBox, "Movement saved.", "success");
   });
 }
@@ -360,17 +409,20 @@ function editMovement(id) {
   const movements = getArray(STORAGE_KEYS.MOVEMENTS);
   const m = movements.find((x) => x.id === id);
   if (!m) return;
+
   document.getElementById("movementType").value = m.type;
   document.getElementById("movementCarNumber").value = m.carNumber;
   document.getElementById("movementPlate").value = m.plate;
   document.getElementById("movementNotes").value = m.notes || "";
   document.getElementById("movementDriverSelect").value = m.driverUsername;
+
   deleteMovement(id, false);
   showView("viewMovements");
 }
 
 function shareMovement(m) {
   const text = `Movement: ${m.type.toUpperCase()} | Car ${m.carNumber} | Plate ${m.plate} | Driver ${m.driverName} | Date ${m.date} | Notes: ${m.notes || "-"}`;
+
   if (navigator.share) {
     navigator.share({ text }).catch(() => {});
   } else {
@@ -380,8 +432,10 @@ function shareMovement(m) {
 
 function printMovement(m) {
   const text = `Movement\nType: ${m.type}\nCar: ${m.carNumber}\nPlate: ${m.plate}\nDriver: ${m.driverName}\nBy: ${m.createdBy}\nDate: ${m.date}\nNotes: ${m.notes || "-"}`;
+
   const w = window.open("", "_blank");
   if (!w) return;
+
   w.document.write(`<pre>${text}</pre>`);
   w.print();
   w.close();
@@ -391,13 +445,17 @@ function deleteMovement(id, rerender = true) {
   let movements = getArray(STORAGE_KEYS.MOVEMENTS);
   movements = movements.filter((m) => m.id !== id);
   saveArray(STORAGE_KEYS.MOVEMENTS, movements);
+
   if (rerender) renderMovementsList();
 }
 
-// MEMBERS
+/* ============================================================
+   MEMBERS
+============================================================ */
 function renderMembersList() {
   const container = document.getElementById("membersList");
   if (!container) return;
+
   const users = getArray(STORAGE_KEYS.USERS);
 
   if (users.length === 0) {
@@ -406,6 +464,7 @@ function renderMembersList() {
   }
 
   container.innerHTML = "";
+
   users.forEach((u) => {
     const div = document.createElement("div");
     div.className = "list-item";
@@ -438,6 +497,7 @@ function renderMembersList() {
 function renderMessageTargets() {
   const select = document.getElementById("messageTarget");
   if (!select) return;
+
   const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
 
@@ -457,8 +517,10 @@ function renderMessageTargets() {
 function renderStatsUsers() {
   const select = document.getElementById("statsUserSelect");
   if (!select) return;
+
   const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
+
   users.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
@@ -481,6 +543,7 @@ function initMembers() {
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+
     const username = document.getElementById("memberUsername").value.trim();
     const password = document.getElementById("memberPassword").value.trim();
     const displayName = document.getElementById("memberDisplayName").value.trim();
@@ -493,6 +556,7 @@ function initMembers() {
     }
 
     const users = getArray(STORAGE_KEYS.USERS);
+
     if (users.find((u) => u.username === username)) {
       showMessage(errorBox, "Username already exists.");
       return;
@@ -500,19 +564,24 @@ function initMembers() {
 
     users.push({ username, password, displayName, phone, role });
     saveArray(STORAGE_KEYS.USERS, users);
+
     form.reset();
     renderMembersList();
     renderDriverSelect();
     renderMessageTargets();
     renderStatsUsers();
+
     showMessage(successBox, "Member saved.", "success");
   });
 }
 
-// MESSAGES
+/* ============================================================
+   MESSAGES
+============================================================ */
 function renderMessagesList() {
   const container = document.getElementById("messagesList");
   if (!container) return;
+
   const messages = getArray(STORAGE_KEYS.MESSAGES);
 
   if (messages.length === 0) {
@@ -521,17 +590,13 @@ function renderMessagesList() {
   }
 
   container.innerHTML = "";
+
   messages
     .slice()
     .reverse()
     .forEach((msg) => {
       const div = document.createElement("div");
-      div.className = "list-item";
-      div.id = `message-${msg.id}`;
-
-      const from = document.createElement("div");
-      from.className = "message-from";
-      from.textContent = msg.from;
+      div
 
       const text = document.createElement("div");
       text.className = "message-text";
@@ -574,6 +639,7 @@ function initMessages() {
 
     const users = getArray(STORAGE_KEYS.USERS);
     let toLabel = "All";
+
     if (target !== "all") {
       const u = users.find((x) => x.username === target);
       toLabel = u ? `${u.displayName} (${u.username})` : target;
@@ -598,7 +664,9 @@ function initMessages() {
   });
 }
 
-// STATISTICS
+/* ============================================================
+   STATISTICS
+============================================================ */
 function updateStatsSummary() {
   const box = document.getElementById("statsSummaryBox");
   if (!box) return;
@@ -619,12 +687,16 @@ function initStatistics() {
   updateStatsSummary();
   renderStatsUsers();
 
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
+  /* By Date Range */
   const formRange = document.getElementById("statsRangeForm");
   const rangeResult = document.getElementById("statsRangeResult");
+
   if (formRange) {
     formRange.addEventListener("submit", (e) => {
       e.preventDefault();
-      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
       const fromDate = document.getElementById("statsFromDate").value;
       const toDate = document.getElementById("statsToDate").value;
 
@@ -645,53 +717,60 @@ function initStatistics() {
     });
   }
 
+  /* By User */
   const formUser = document.getElementById("statsUserForm");
   const userResult = document.getElementById("statsUserResult");
+
   if (formUser) {
     formUser.addEventListener("submit", (e) => {
       e.preventDefault();
-      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
       const selected = document.getElementById("statsUserSelect").value;
+
       const count = movements.filter(
         (m) => m.createdBy === selected || m.driverUsername === selected
       ).length;
+
       userResult.textContent = `Movements related to this user: ${count}`;
     });
   }
 
+  /* By Car */
   const formCar = document.getElementById("statsCarForm");
   const carResult = document.getElementById("statsCarResult");
+
   if (formCar) {
     formCar.addEventListener("submit", (e) => {
       e.preventDefault();
-      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
       const carNumber = document.getElementById("statsCarNumber").value.trim();
+
       if (!carNumber) {
         carResult.textContent = "Please enter car number.";
         return;
       }
+
       const count = movements.filter(
         (m) => m.carNumber.toLowerCase() === carNumber.toLowerCase()
       ).length;
+
       carResult.textContent = `Movements for this car: ${count}`;
     });
   }
 }
 
-// SETTINGS
+/* ============================================================
+   SETTINGS
+============================================================ */
 function initSettings() {
+  /* Change Password */
   const passForm = document.getElementById("changePasswordForm");
   const passError = document.getElementById("changePasswordError");
   const passSuccess = document.getElementById("changePasswordSuccess");
 
-  const phoneForm = document.getElementById("changePhoneForm");
-  const phoneError = document.getElementById("changePhoneError");
-  const phoneSuccess = document.getElementById("changePhoneSuccess");
-
   if (passForm) {
     passForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!currentUser) return;
 
       const oldPassword = document.getElementById("oldPassword").value.trim();
       const newPassword = document.getElementById("newPassword").value.trim();
@@ -711,6 +790,7 @@ function initSettings() {
 
       const users = getArray(STORAGE_KEYS.USERS);
       const idx = users.findIndex((u) => u.username === currentUser.username);
+
       if (idx === -1) {
         showMessage(passError, "User not found.");
         return;
@@ -723,19 +803,26 @@ function initSettings() {
 
       users[idx].password = newPassword;
       saveArray(STORAGE_KEYS.USERS, users);
+
       currentUser.password = newPassword;
       saveSession(currentUser);
+
       showMessage(passSuccess, "Password updated.", "success");
       passForm.reset();
     });
   }
 
+  /* Change Phone */
+  const phoneForm = document.getElementById("changePhoneForm");
+  const phoneError = document.getElementById("changePhoneError");
+  const phoneSuccess = document.getElementById("changePhoneSuccess");
+
   if (phoneForm) {
     phoneForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!currentUser) return;
 
       const newPhone = document.getElementById("newPhone").value.trim();
+
       if (!newPhone) {
         showMessage(phoneError, "Please enter phone.");
         return;
@@ -743,6 +830,7 @@ function initSettings() {
 
       const users = getArray(STORAGE_KEYS.USERS);
       const idx = users.findIndex((u) => u.username === currentUser.username);
+
       if (idx === -1) {
         showMessage(phoneError, "User not found.");
         return;
@@ -750,15 +838,19 @@ function initSettings() {
 
       users[idx].phone = newPhone;
       saveArray(STORAGE_KEYS.USERS, users);
+
       currentUser.phone = newPhone;
       saveSession(currentUser);
+
       showMessage(phoneSuccess, "Phone updated.", "success");
       phoneForm.reset();
     });
   }
 }
 
-// GLOBAL SEARCH (يقفز للعنصر)
+/* ============================================================
+   GLOBAL SEARCH (JUMP TO ITEM)
+============================================================ */
 function initGlobalSearch() {
   const overlay = document.getElementById("searchOverlay");
   const openBtn = document.getElementById("headerSearchBtn");
@@ -792,6 +884,7 @@ function initGlobalSearch() {
 
     const results = [];
 
+    /* Movements */
     movements.forEach((m) => {
       const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
       if (text.includes(term)) {
@@ -803,6 +896,7 @@ function initGlobalSearch() {
       }
     });
 
+    /* Members */
     users.forEach((u) => {
       const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
       if (text.includes(term)) {
@@ -814,6 +908,7 @@ function initGlobalSearch() {
       }
     });
 
+    /* Messages */
     messages.forEach((msg) => {
       const text = `${msg.text} ${msg.from} ${msg.toLabel}`.toLowerCase();
       if (text.includes(term)) {
@@ -825,46 +920,59 @@ function initGlobalSearch() {
       }
     });
 
+    /* Render results */
     if (results.length === 0) {
       box.innerHTML = `<div class="search-result-item">No results.</div>`;
-    } else {
-      box.innerHTML = "";
-      results.forEach((r) => {
-        const div = document.createElement("div");
-        div.className = "search-result-item";
-        div.textContent = r.label;
-        div.addEventListener("click", () => {
-          overlay.classList.remove("active");
-          if (r.type === "movement") {
-            showView("viewMovements");
-            setTimeout(() => {
-              const el = document.getElementById(`movement-${r.id}`);
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 50);
-          } else if (r.type === "member") {
-            showView("viewMembers");
-            setTimeout(() => {
-              const el = document.getElementById(`member-${r.id}`);
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 50);
-          } else if (r.type === "message") {
-            showView("viewMessages");
-            setTimeout(() => {
-              const el = document.getElementById(`message-${r.id}`);
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }, 50);
-          }
-        });
-        box.appendChild(div);
-      });
+      return;
     }
+
+    box.innerHTML = "";
+
+    results.forEach((r) => {
+      const div = document.createElement("div");
+      div.className = "search-result-item";
+      div.textContent = r.label;
+
+      div.addEventListener("click", () => {
+        overlay.classList.remove("active");
+
+        if (r.type === "movement") {
+          showView("viewMovements");
+          setTimeout(() => {
+            const el = document.getElementById(`movement-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+
+        if (r.type === "member") {
+          showView("viewMembers");
+          setTimeout(() => {
+            const el = document.getElementById(`member-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+
+        if (r.type === "message") {
+          showView("viewMessages");
+          setTimeout(() => {
+            const el = document.getElementById(`message-${r.id}`);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 50);
+        }
+      });
+
+      box.appendChild(div);
+    });
   });
 }
 
-// LOGOUT
+/* ============================================================
+   LOGOUT
+============================================================ */
 function initLogout() {
   const logoutBtn = document.getElementById("logoutBtn");
   if (!logoutBtn) return;
+
   logoutBtn.addEventListener("click", () => {
     clearSession();
     currentUser = null;
@@ -872,13 +980,20 @@ function initLogout() {
   });
 }
 
-// PWA
+/* ============================================================
+   PWA REGISTRATION
+============================================================ */
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    navigator.serviceWorker
+      .register("./service-worker.js", { scope: "./" })
+      .catch(() => {});
   }
 }
 
+/* ============================================================
+   MAIN ENTRY
+============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
   seedInitialData();
   registerServiceWorker();
