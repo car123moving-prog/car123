@@ -1,18 +1,57 @@
 // ===============================
-// Simple local "database" using localStorage
+// STORAGE KEYS
 // ===============================
-
 const STORAGE_KEYS = {
-  USERS: "car_users",
-  MOVEMENTS: "car_movements",
-  MESSAGES: "car_messages",
-  SESSION: "carUser",
+  USERS: "cms_users",
+  MOVEMENTS: "cms_movements",
+  MESSAGES: "cms_messages",
+  SESSION: "cms_session",
 };
 
-// Initial seed data
+// ===============================
+// TIMEZONE (Gulf Standard Time +4)
+// ===============================
+function getGulfNow() {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const gulf = new Date(utc + 4 * 60 * 60 * 1000);
+  return gulf;
+}
+
+function formatDateTime(dt) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  let h = dt.getHours();
+  const min = String(dt.getMinutes()).padStart(2, "0");
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
+}
+
+// ===============================
+// LOCAL STORAGE HELPERS
+// ===============================
+function getArray(key) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveArray(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+// ===============================
+// SEED DATA
+// ===============================
 function seedInitialData() {
-  const usersRaw = localStorage.getItem(STORAGE_KEYS.USERS);
-  if (!usersRaw) {
+  if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     const defaultUsers = [
       {
         username: "admin",
@@ -29,46 +68,30 @@ function seedInitialData() {
         role: "user",
       },
     ];
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(defaultUsers));
+    saveArray(STORAGE_KEYS.USERS, defaultUsers);
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) {
-    localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify([]));
+    saveArray(STORAGE_KEYS.MOVEMENTS, []);
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
-    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify([]));
+    saveArray(STORAGE_KEYS.MESSAGES, []);
   }
 }
 
-// Helpers to get/save arrays
-function getArray(key) {
-  const raw = localStorage.getItem(key);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) || [];
-  } catch {
-    return [];
-  }
-}
-
-function saveArray(key, arr) {
-  localStorage.setItem(key, JSON.stringify(arr));
-}
-
 // ===============================
-// Session Management
+// SESSION
 // ===============================
-
 function saveSession(user) {
   localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
 }
 
 function getCurrentUser() {
-  const data = localStorage.getItem(STORAGE_KEYS.SESSION);
-  if (!data) return null;
+  const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
+  if (!raw) return null;
   try {
-    return JSON.parse(data);
+    return JSON.parse(raw);
   } catch {
     return null;
   }
@@ -79,34 +102,56 @@ function clearSession() {
 }
 
 // ===============================
-// LOGIN PAGE LOGIC
+// UI HELPERS
 // ===============================
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => {
+    s.classList.toggle("active", s.id === id);
+  });
+}
 
-function initLoginPage() {
-  seedInitialData();
+function showView(id) {
+  document.querySelectorAll(".view").forEach((v) => {
+    v.classList.toggle("active", v.id === id);
+  });
+}
 
-  const existingUser = getCurrentUser();
-  if (existingUser) {
-    window.location.href = "index.html";
+function showMessage(el, msg, type = "error") {
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove("success-text", "error-text");
+  el.classList.add(type === "success" ? "success-text" : "error-text");
+  if (msg) {
+    setTimeout(() => {
+      el.textContent = "";
+    }, 2500);
+  }
+}
+
+// ===============================
+// LOGIN
+// ===============================
+function initLogin() {
+  const loginForm = document.getElementById("loginForm");
+  const usernameInput = document.getElementById("loginUsername");
+  const passwordInput = document.getElementById("loginPassword");
+  const loginError = document.getElementById("loginError");
+
+  const existing = getCurrentUser();
+  if (existing) {
+    enterApp(existing);
     return;
   }
 
-  const form = document.getElementById("loginForm");
-  const usernameInput = document.getElementById("loginUsername");
-  const passwordInput = document.getElementById("loginPassword");
-  const errorBox = document.getElementById("loginError");
+  if (!loginForm) return;
 
-  if (!form) return;
-
-  form.addEventListener("submit", (e) => {
+  loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    errorBox.textContent = "";
-
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
 
     if (!username || !password) {
-      errorBox.textContent = "Please enter username and password.";
+      showMessage(loginError, "Please enter username and password.");
       return;
     }
 
@@ -114,141 +159,62 @@ function initLoginPage() {
     const found = users.find(
       (u) => u.username === username && u.password === password
     );
-
     if (!found) {
-      errorBox.textContent = "Invalid username or password.";
+      showMessage(loginError, "Invalid username or password.");
       return;
     }
 
     saveSession(found);
-    window.location.href = "index.html";
+    enterApp(found);
   });
 }
 
 // ===============================
-// ACCORDIONS + SIDEBAR
+// ENTER APP
 // ===============================
+let currentUser = null;
 
-function setupAccordions() {
-  const headers = document.querySelectorAll(".accordion-header");
-  headers.forEach((header) => {
-    header.addEventListener("click", () => {
-      const body = header.nextElementSibling;
-      if (!body) return;
-      body.classList.toggle("open");
-    });
-  });
-}
-
-function setupSidebarNavigation() {
-  const buttons = document.querySelectorAll(".sidebar-btn");
-  const sections = document.querySelectorAll(".page-section");
-
-  function activateSection(targetId) {
-    sections.forEach((sec) => {
-      sec.classList.toggle("active", sec.id === targetId);
-    });
-  }
-
-  buttons.forEach((btn, index) => {
-    btn.addEventListener("click", () => {
-      const target = btn.getAttribute("data-target");
-      activateSection(target);
-    });
-    // افتراضياً أول زر يفتح أول قسم
-    if (index === 0) {
-      const target = btn.getAttribute("data-target");
-      activateSection(target);
-    }
-  });
-}
-
-function applyRoleVisibility(role) {
-  const adminOnly = document.querySelectorAll('[data-role="admin"]');
-  adminOnly.forEach((el) => {
-    if (role !== "admin") {
-      el.classList.add("hidden");
-    }
-  });
+function enterApp(user) {
+  currentUser = user;
+  showScreen("screenHome");
+  updateUserBar();
+  initHomeViews();
 }
 
 // ===============================
-// MEMBERS SECTION
+// USER BAR
 // ===============================
+function updateUserBar() {
+  const nameEl = document.getElementById("currentUserName");
+  const roleEl = document.getElementById("currentUserRole");
+  if (!currentUser) return;
+  if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username;
+  if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
+}
 
-function renderMembersList() {
-  const container = document.getElementById("membersList");
-  if (!container) return;
+// ===============================
+// MOVEMENTS
+// ===============================
+function renderDriverSelect() {
+  const select = document.getElementById("movementDriverSelect");
+  if (!select) return;
   const users = getArray(STORAGE_KEYS.USERS);
-
-  if (users.length === 0) {
-    container.textContent = "No members.";
-    return;
-  }
-
-  container.innerHTML = "";
+  select.innerHTML = "";
   users.forEach((u) => {
-    const div = document.createElement("div");
-    div.className = "list-item";
-    div.textContent = `${u.displayName} (${u.username}) - ${u.role} - ${u.phone || "No phone"}`;
-    container.appendChild(div);
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    select.appendChild(opt);
   });
 }
-
-function initMembersSection() {
-  renderMembersList();
-
-  const form = document.getElementById("addMemberForm");
-  const errorBox = document.getElementById("addMemberError");
-  if (!form) return;
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    errorBox.textContent = "";
-
-    const username = document.getElementById("memberUsername").value.trim();
-    const password = document.getElementById("memberPassword").value.trim();
-    const displayName = document
-      .getElementById("memberDisplayName")
-      .value.trim();
-    const phone = document.getElementById("memberPhone").value.trim();
-    const role = document.getElementById("memberRole").value;
-
-    if (!username || !password || !displayName) {
-      errorBox.textContent = "Please fill all required fields.";
-      return;
-    }
-
-    const users = getArray(STORAGE_KEYS.USERS);
-    if (users.find((u) => u.username === username)) {
-      errorBox.textContent = "Username already exists.";
-      return;
-    }
-
-    users.push({
-      username,
-      password,
-      displayName,
-      phone,
-      role,
-    });
-    saveArray(STORAGE_KEYS.USERS, users);
-    renderMembersList();
-    form.reset();
-  });
-}
-
-// ===============================
-// MOVEMENTS SECTION
-// ===============================
 
 function renderMovementsList() {
   const container = document.getElementById("movementsList");
   if (!container) return;
-
   const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
   if (movements.length === 0) {
-    container.textContent = "No movements.";
+    container.innerHTML = `<div class="info-text">No movements yet.</div>`;
     return;
   }
 
@@ -256,176 +222,291 @@ function renderMovementsList() {
   movements
     .slice()
     .reverse()
-    .forEach((m) => {
+    .forEach((m, index) => {
       const div = document.createElement("div");
       div.className = "list-item";
-      div.textContent = `[${m.type.toUpperCase()}] Car: ${m.carNumber}, Plate: ${
-        m.plate
-      }, Person: ${m.person}, By: ${m.createdBy}, Date: ${m.date}, Notes: ${
-        m.notes || "-"
-      }`;
+
+      const header = document.createElement("div");
+      header.className = "list-item-header";
+
+      const left = document.createElement("div");
+      const badge = document.createElement("span");
+      badge.className = "badge " + m.type;
+      badge.textContent = m.type === "receive" ? "RECEIVE" : "DELIVER";
+
+      const title = document.createElement("span");
+      title.style.marginLeft = "6px";
+      title.textContent = `Car ${m.carNumber} - Plate ${m.plate}`;
+
+      left.appendChild(badge);
+      left.appendChild(title);
+
+      const right = document.createElement("div");
+      right.className = "list-item-meta";
+      right.textContent = m.date;
+
+      header.appendChild(left);
+      header.appendChild(right);
+
+      const meta = document.createElement("div");
+      meta.className = "list-item-meta";
+      meta.textContent = `Driver: ${m.driverName} | By: ${m.createdBy}`;
+
+      const notes = document.createElement("div");
+      notes.className = "message-text";
+      notes.textContent = m.notes || "-";
+
+      const actions = document.createElement("div");
+      actions.className = "list-item-actions";
+
+      const btnEdit = document.createElement("button");
+      btnEdit.className = "action-btn";
+      btnEdit.textContent = "Edit";
+      btnEdit.addEventListener("click", () => editMovement(m.id));
+
+      const btnShare = document.createElement("button");
+      btnShare.className = "action-btn";
+      btnShare.textContent = "Share";
+      btnShare.addEventListener("click", () => shareMovement(m));
+
+      const btnPrint = document.createElement("button");
+      btnPrint.className = "action-btn";
+      btnPrint.textContent = "Print";
+      btnPrint.addEventListener("click", () => printMovement(m));
+
+      const btnDelete = document.createElement("button");
+      btnDelete.className = "action-btn danger";
+      btnDelete.textContent = "Delete";
+      btnDelete.addEventListener("click", () => deleteMovement(m.id));
+
+      actions.appendChild(btnEdit);
+      actions.appendChild(btnShare);
+      actions.appendChild(btnPrint);
+      if (currentUser && currentUser.role === "admin") {
+        actions.appendChild(btnDelete);
+      }
+
+      div.appendChild(header);
+      div.appendChild(meta);
+      div.appendChild(notes);
+      div.appendChild(actions);
+
       container.appendChild(div);
     });
 }
 
-function initMovementsSection(currentUser) {
+function initMovements() {
+  renderDriverSelect();
   renderMovementsList();
 
   const form = document.getElementById("addMovementForm");
   const errorBox = document.getElementById("addMovementError");
+  const successBox = document.getElementById("addMovementSuccess");
+  const refreshBtn = document.getElementById("refreshMovementsBtn");
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      renderMovementsList();
+    });
+  }
+
   if (!form) return;
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    errorBox.textContent = "";
+    if (!currentUser) return;
 
     const type = document.getElementById("movementType").value;
-    const carNumber = document
-      .getElementById("movementCarNumber")
-      .value.trim();
+    const carNumber = document.getElementById("movementCarNumber").value.trim();
     const plate = document.getElementById("movementPlate").value.trim();
-    const person = document.getElementById("movementPerson").value.trim();
+    const driverUsername = document.getElementById("movementDriverSelect").value;
     const notes = document.getElementById("movementNotes").value.trim();
 
-    if (!carNumber || !plate || !person) {
-      errorBox.textContent = "Please fill all required fields.";
+    if (!carNumber || !plate || !driverUsername) {
+      showMessage(errorBox, "Please fill required fields.");
       return;
     }
 
+    const users = getArray(STORAGE_KEYS.USERS);
+    const driver = users.find((u) => u.username === driverUsername);
+    const driverName = driver ? driver.displayName : driverUsername;
+
     const movements = getArray(STORAGE_KEYS.MOVEMENTS);
-    const now = new Date();
-    movements.push({
+    const now = getGulfNow();
+
+    const movement = {
+      id: Date.now(),
       type,
       carNumber,
       plate,
-      person,
+      driverUsername,
+      driverName,
       notes,
       createdBy: currentUser.displayName || currentUser.username,
-      date: now.toISOString().slice(0, 19).replace("T", " "),
-    });
+      date: formatDateTime(now),
+    };
+
+    movements.push(movement);
     saveArray(STORAGE_KEYS.MOVEMENTS, movements);
     renderMovementsList();
     form.reset();
+    renderDriverSelect();
+    showMessage(successBox, "Movement saved.", "success");
+  });
+}
+
+function editMovement(id) {
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  const m = movements.find((x) => x.id === id);
+  if (!m) return;
+  document.getElementById("movementType").value = m.type;
+  document.getElementById("movementCarNumber").value = m.carNumber;
+  document.getElementById("movementPlate").value = m.plate;
+  document.getElementById("movementNotes").value = m.notes || "";
+  document.getElementById("movementDriverSelect").value = m.driverUsername;
+  deleteMovement(id, false);
+}
+
+function shareMovement(m) {
+  const text = `Movement: ${m.type.toUpperCase()} | Car ${m.carNumber} | Plate ${m.plate} | Driver ${m.driverName} | Date ${m.date} | Notes: ${m.notes || "-"}`;
+  if (navigator.share) {
+    navigator
+      .share({ text })
+      .catch(() => {});
+  } else {
+    alert(text);
+  }
+}
+
+function printMovement(m) {
+  const text = `Movement\nType: ${m.type}\nCar: ${m.carNumber}\nPlate: ${m.plate}\nDriver: ${m.driverName}\nBy: ${m.createdBy}\nDate: ${m.date}\nNotes: ${m.notes || "-"}`;
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`<pre>${text}</pre>`);
+  w.print();
+  w.close();
+}
+
+function deleteMovement(id, rerender = true) {
+  let movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  movements = movements.filter((m) => m.id !== id);
+  saveArray(STORAGE_KEYS.MOVEMENTS, movements);
+  if (rerender) renderMovementsList();
+}
+
+// ===============================
+// MEMBERS
+// ===============================
+function renderMembersList() {
+  const container = document.getElementById("membersList");
+  if (!container) return;
+  const users = getArray(STORAGE_KEYS.USERS);
+
+  if (users.length === 0) {
+    container.innerHTML = `<div class="info-text">No members.</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  users.forEach((u) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+
+    const header = document.createElement("div");
+    header.className = "list-item-header";
+
+    const left = document.createElement("div");
+    left.textContent = `${u.displayName} (${u.username})`;
+
+    const right = document.createElement("div");
+    right.className = "list-item-meta";
+    right.textContent = u.role === "admin" ? "Admin" : "User";
+
+    header.appendChild(left);
+    header.appendChild(right);
+
+    const meta = document.createElement("div");
+    meta.className = "list-item-meta";
+    meta.textContent = `Phone: ${u.phone || "-"}`;
+
+    div.appendChild(header);
+    div.appendChild(meta);
+
+    container.appendChild(div);
+  });
+}
+
+function initMembers() {
+  renderMembersList();
+  renderDriverSelect();
+  renderMessageTargets();
+  renderStatsUsers();
+
+  const form = document.getElementById("addMemberForm");
+  const errorBox = document.getElementById("addMemberError");
+  const successBox = document.getElementById("addMemberSuccess");
+
+  if (!form) return;
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const username = document.getElementById("memberUsername").value.trim();
+    const password = document.getElementById("memberPassword").value.trim();
+    const displayName = document.getElementById("memberDisplayName").value.trim();
+    const phone = document.getElementById("memberPhone").value.trim();
+    const role = document.getElementById("memberRole").value;
+
+    if (!username || !password || !displayName) {
+      showMessage(errorBox, "Please fill required fields.");
+      return;
+    }
+
+    const users = getArray(STORAGE_KEYS.USERS);
+    if (users.find((u) => u.username === username)) {
+      showMessage(errorBox, "Username already exists.");
+      return;
+    }
+
+    users.push({ username, password, displayName, phone, role });
+    saveArray(STORAGE_KEYS.USERS, users);
+    form.reset();
+    renderMembersList();
+    renderDriverSelect();
+    renderMessageTargets();
+    renderStatsUsers();
+    showMessage(successBox, "Member saved.", "success");
   });
 }
 
 // ===============================
-// STATISTICS SECTION
+// MESSAGES
 // ===============================
-
-function updateStatsSummary() {
-  const box = document.getElementById("statsSummaryBox");
-  if (!box) return;
-
-  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
-  const total = movements.length;
-  const received = movements.filter((m) => m.type === "receive").length;
-  const delivered = movements.filter((m) => m.type === "deliver").length;
-
-  box.innerHTML = `
-    <div>Total movements: ${total}</div>
-    <div>Received: ${received}</div>
-    <div>Delivered: ${delivered}</div>
-  `;
-}
-
-function initStatisticsSection() {
-  updateStatsSummary();
-
-  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+function renderMessageTargets() {
+  const select = document.getElementById("messageTarget");
+  if (!select) return;
   const users = getArray(STORAGE_KEYS.USERS);
+  select.innerHTML = "";
 
-  // By date range
-  const formRange = document.getElementById("statsRangeForm");
-  const rangeResult = document.getElementById("statsRangeResult");
-  if (formRange) {
-    formRange.addEventListener("submit", (e) => {
-      e.preventDefault();
-      rangeResult.textContent = "";
+  const optAll = document.createElement("option");
+  optAll.value = "all";
+  optAll.textContent = "All";
+  select.appendChild(optAll);
 
-      const fromDate = document.getElementById("statsFromDate").value;
-      const toDate = document.getElementById("statsToDate").value;
-
-      if (!fromDate || !toDate) {
-        rangeResult.textContent = "Please select both dates.";
-        return;
-      }
-
-      const fromTime = new Date(fromDate).getTime();
-      const toTime = new Date(toDate).getTime() + 24 * 60 * 60 * 1000 - 1;
-
-      const filtered = movements.filter((m) => {
-        const t = new Date(m.date).getTime();
-        return t >= fromTime && t <= toTime;
-      });
-
-      rangeResult.textContent = `Movements in range: ${filtered.length}`;
-    });
-  }
-
-  // By user
-  const userSelect = document.getElementById("statsUserSelect");
-  const formUser = document.getElementById("statsUserForm");
-  const userResult = document.getElementById("statsUserResult");
-
-  if (userSelect && formUser) {
-    userSelect.innerHTML = "";
-    users.forEach((u) => {
-      const opt = document.createElement("option");
-      opt.value = u.username;
-      opt.textContent = `${u.displayName} (${u.username})`;
-      userSelect.appendChild(opt);
-    });
-
-    formUser.addEventListener("submit", (e) => {
-      e.preventDefault();
-      userResult.textContent = "";
-      const selected = userSelect.value;
-
-      const filtered = movements.filter(
-        (m) => m.createdBy === selected || m.createdBy === ""
-      );
-
-      const count = movements.filter((m) => m.createdBy === selected).length;
-      userResult.textContent = `Movements by this user: ${count}`;
-    });
-  }
-
-  // By car
-  const formCar = document.getElementById("statsCarForm");
-  const carResult = document.getElementById("statsCarResult");
-
-  if (formCar) {
-    formCar.addEventListener("submit", (e) => {
-      e.preventDefault();
-      carResult.textContent = "";
-      const carNumber = document
-        .getElementById("statsCarNumber")
-        .value.trim();
-      if (!carNumber) {
-        carResult.textContent = "Please enter car number.";
-        return;
-      }
-
-      const filtered = movements.filter(
-        (m) => m.carNumber.toLowerCase() === carNumber.toLowerCase()
-      );
-      carResult.textContent = `Movements for this car: ${filtered.length}`;
-    });
-  }
+  users.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    select.appendChild(opt);
+  });
 }
-
-// ===============================
-// MESSAGES SECTION
-// ===============================
 
 function renderMessagesList() {
   const container = document.getElementById("messagesList");
   if (!container) return;
-
   const messages = getArray(STORAGE_KEYS.MESSAGES);
+
   if (messages.length === 0) {
-    container.textContent = "No messages.";
+    container.innerHTML = `<div class="info-text">No messages.</div>`;
     return;
   }
 
@@ -436,92 +517,212 @@ function renderMessagesList() {
     .forEach((msg) => {
       const div = document.createElement("div");
       div.className = "list-item";
-      div.textContent = `[${msg.date}] ${msg.from}: ${msg.text}`;
+
+      const from = document.createElement("div");
+      from.className = "message-from";
+      from.textContent = msg.from;
+
+      const text = document.createElement("div");
+      text.className = "message-text";
+      text.textContent = msg.text;
+
+      const meta = document.createElement("div");
+      meta.className = "message-meta";
+      meta.textContent = `${msg.date} | To: ${msg.toLabel}`;
+
+      div.appendChild(from);
+      div.appendChild(text);
+      div.appendChild(meta);
+
       container.appendChild(div);
     });
 }
 
-function initMessagesSection(currentUser) {
+function initMessages() {
+  renderMessageTargets();
   renderMessagesList();
 
   const form = document.getElementById("sendMessageForm");
   const errorBox = document.getElementById("sendMessageError");
+  const successBox = document.getElementById("sendMessageSuccess");
   const textArea = document.getElementById("messageText");
+
   if (!form) return;
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    errorBox.textContent = "";
+    if (!currentUser) return;
 
+    const target = document.getElementById("messageTarget").value;
     const text = textArea.value.trim();
+
     if (!text) {
-      errorBox.textContent = "Message cannot be empty.";
+      showMessage(errorBox, "Message cannot be empty.");
       return;
     }
 
+    const users = getArray(STORAGE_KEYS.USERS);
+    let toLabel = "All";
+    if (target !== "all") {
+      const u = users.find((x) => x.username === target);
+      toLabel = u ? `${u.displayName} (${u.username})` : target;
+    }
+
     const messages = getArray(STORAGE_KEYS.MESSAGES);
-    const now = new Date();
+    const now = getGulfNow();
+
     messages.push({
+      id: Date.now(),
       from: currentUser.displayName || currentUser.username,
+      to: target,
+      toLabel,
       text,
-      date: now.toISOString().slice(0, 19).replace("T", " "),
+      date: formatDateTime(now),
     });
+
     saveArray(STORAGE_KEYS.MESSAGES, messages);
-    renderMessagesList();
     form.reset();
+    renderMessagesList();
+    showMessage(successBox, "Message sent.", "success");
   });
 }
 
 // ===============================
-// SETTINGS SECTION
+// STATISTICS
 // ===============================
+function updateStatsSummary() {
+  const box = document.getElementById("statsSummaryBox");
+  if (!box) return;
 
-function initSettingsSection(currentUser) {
-  const changePassForm = document.getElementById("changePasswordForm");
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  const total = movements.length;
+  const received = movements.filter((m) => m.type === "receive").length;
+  const delivered = movements.filter((m) => m.type === "deliver").length;
+
+  box.innerHTML = `
+    <div class="info-text">Total movements: ${total}</div>
+    <div class="info-text">Received: ${received}</div>
+    <div class="info-text">Delivered: ${delivered}</div>
+  `;
+}
+
+function renderStatsUsers() {
+  const select = document.getElementById("statsUserSelect");
+  if (!select) return;
+  const users = getArray(STORAGE_KEYS.USERS);
+  select.innerHTML = "";
+  users.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    select.appendChild(opt);
+  });
+}
+
+function initStatistics() {
+  updateStatsSummary();
+  renderStatsUsers();
+
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+
+  const formRange = document.getElementById("statsRangeForm");
+  const rangeResult = document.getElementById("statsRangeResult");
+  if (formRange) {
+    formRange.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fromDate = document.getElementById("statsFromDate").value;
+      const toDate = document.getElementById("statsToDate").value;
+
+      if (!fromDate || !toDate) {
+        rangeResult.textContent = "Please select both dates.";
+        return;
+      }
+
+      const fromTime = new Date(fromDate + "T00:00:00").getTime();
+      const toTime = new Date(toDate + "T23:59:59").getTime();
+
+      const filtered = movements.filter((m) => {
+        const t = new Date(m.date.replace(" ", "T")).getTime();
+        return t >= fromTime && t <= toTime;
+      });
+
+      rangeResult.textContent = `Movements in range: ${filtered.length}`;
+    });
+  }
+
+  const formUser = document.getElementById("statsUserForm");
+  const userResult = document.getElementById("statsUserResult");
+  if (formUser) {
+    formUser.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const selected = document.getElementById("statsUserSelect").value;
+      const count = movements.filter(
+        (m) => m.createdBy === selected || m.driverUsername === selected
+      ).length;
+      userResult.textContent = `Movements related to this user: ${count}`;
+    });
+  }
+
+  const formCar = document.getElementById("statsCarForm");
+  const carResult = document.getElementById("statsCarResult");
+  if (formCar) {
+    formCar.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const carNumber = document.getElementById("statsCarNumber").value.trim();
+      if (!carNumber) {
+        carResult.textContent = "Please enter car number.";
+        return;
+      }
+      const count = movements.filter(
+        (m) => m.carNumber.toLowerCase() === carNumber.toLowerCase()
+      ).length;
+      carResult.textContent = `Movements for this car: ${count}`;
+    });
+  }
+}
+
+// ===============================
+// SETTINGS
+// ===============================
+function initSettings() {
+  const passForm = document.getElementById("changePasswordForm");
   const passError = document.getElementById("changePasswordError");
   const passSuccess = document.getElementById("changePasswordSuccess");
 
-  const changePhoneForm = document.getElementById("changePhoneForm");
+  const phoneForm = document.getElementById("changePhoneForm");
   const phoneError = document.getElementById("changePhoneError");
   const phoneSuccess = document.getElementById("changePhoneSuccess");
 
-  if (changePassForm) {
-    changePassForm.addEventListener("submit", (e) => {
+  if (passForm) {
+    passForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      passError.textContent = "";
-      passSuccess.textContent = "";
+      if (!currentUser) return;
 
-      const oldPassword = document
-        .getElementById("oldPassword")
-        .value.trim();
-      const newPassword = document
-        .getElementById("newPassword")
-        .value.trim();
+      const oldPassword = document.getElementById("oldPassword").value.trim();
+      const newPassword = document.getElementById("newPassword").value.trim();
       const confirmPassword = document
         .getElementById("confirmPassword")
         .value.trim();
 
       if (!oldPassword || !newPassword || !confirmPassword) {
-        passError.textContent = "Please fill all fields.";
+        showMessage(passError, "Please fill all fields.");
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        passError.textContent = "New passwords do not match.";
+        showMessage(passError, "New passwords do not match.");
         return;
       }
 
       const users = getArray(STORAGE_KEYS.USERS);
-      const idx = users.findIndex(
-        (u) => u.username === currentUser.username
-      );
+      const idx = users.findIndex((u) => u.username === currentUser.username);
       if (idx === -1) {
-        passError.textContent = "User not found.";
+        showMessage(passError, "User not found.");
         return;
       }
 
       if (users[idx].password !== oldPassword) {
-        passError.textContent = "Current password is incorrect.";
+        showMessage(passError, "Current password is incorrect.");
         return;
       }
 
@@ -529,30 +730,26 @@ function initSettingsSection(currentUser) {
       saveArray(STORAGE_KEYS.USERS, users);
       currentUser.password = newPassword;
       saveSession(currentUser);
-
-      passSuccess.textContent = "Password updated successfully.";
-      changePassForm.reset();
+      showMessage(passSuccess, "Password updated.", "success");
+      passForm.reset();
     });
   }
 
-  if (changePhoneForm) {
-    changePhoneForm.addEventListener("submit", (e) => {
+  if (phoneForm) {
+    phoneForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      phoneError.textContent = "";
-      phoneSuccess.textContent = "";
+      if (!currentUser) return;
 
       const newPhone = document.getElementById("newPhone").value.trim();
       if (!newPhone) {
-        phoneError.textContent = "Please enter phone.";
+        showMessage(phoneError, "Please enter phone.");
         return;
       }
 
       const users = getArray(STORAGE_KEYS.USERS);
-      const idx = users.findIndex(
-        (u) => u.username === currentUser.username
-      );
+      const idx = users.findIndex((u) => u.username === currentUser.username);
       if (idx === -1) {
-        phoneError.textContent = "User not found.";
+        showMessage(phoneError, "User not found.");
         return;
       }
 
@@ -560,9 +757,8 @@ function initSettingsSection(currentUser) {
       saveArray(STORAGE_KEYS.USERS, users);
       currentUser.phone = newPhone;
       saveSession(currentUser);
-
-      phoneSuccess.textContent = "Phone updated successfully.";
-      changePhoneForm.reset();
+      showMessage(phoneSuccess, "Phone updated.", "success");
+      phoneForm.reset();
     });
   }
 }
@@ -570,14 +766,33 @@ function initSettingsSection(currentUser) {
 // ===============================
 // GLOBAL SEARCH
 // ===============================
-
 function initGlobalSearch() {
+  const overlay = document.getElementById("searchOverlay");
+  const openBtn = document.getElementById("headerSearchBtn");
+  const closeBtn = document.getElementById("closeSearchBtn");
   const input = document.getElementById("globalSearchInput");
   const box = document.getElementById("globalSearchResults");
-  if (!input || !box) return;
 
-  function performSearch(term) {
-    const t = term.toLowerCase();
+  if (!overlay || !openBtn || !closeBtn || !input || !box) return;
+
+  openBtn.addEventListener("click", () => {
+    overlay.classList.add("active");
+    input.value = "";
+    box.innerHTML = "";
+    input.focus();
+  });
+
+  closeBtn.addEventListener("click", () => {
+    overlay.classList.remove("active");
+  });
+
+  input.addEventListener("input", () => {
+    const term = input.value.trim().toLowerCase();
+    if (!term) {
+      box.innerHTML = "";
+      return;
+    }
+
     const movements = getArray(STORAGE_KEYS.MOVEMENTS);
     const users = getArray(STORAGE_KEYS.USERS);
     const messages = getArray(STORAGE_KEYS.MESSAGES);
@@ -585,40 +800,28 @@ function initGlobalSearch() {
     const results = [];
 
     movements.forEach((m) => {
-      const text = `${m.carNumber} ${m.plate} ${m.person} ${m.notes}`.toLowerCase();
-      if (text.includes(t)) {
-        results.push(`Movement: ${m.carNumber} / ${m.plate} / ${m.person}`);
+      const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
+      if (text.includes(term)) {
+        results.push(`Movement: ${m.carNumber} / ${m.plate} / ${m.driverName}`);
       }
     });
 
     users.forEach((u) => {
       const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
-      if (text.includes(t)) {
+      if (text.includes(term)) {
         results.push(`User: ${u.displayName} (${u.username})`);
       }
     });
 
     messages.forEach((msg) => {
-      const text = `${msg.text} ${msg.from}`.toLowerCase();
-      if (text.includes(t)) {
+      const text = `${msg.text} ${msg.from} ${msg.toLabel}`.toLowerCase();
+      if (text.includes(term)) {
         results.push(`Message: ${msg.text}`);
       }
     });
 
-    return results;
-  }
-
-  input.addEventListener("input", () => {
-    const term = input.value.trim();
-    if (!term) {
-      box.style.display = "none";
-      box.innerHTML = "";
-      return;
-    }
-
-    const results = performSearch(term);
     if (results.length === 0) {
-      box.innerHTML = "<div>No results.</div>";
+      box.innerHTML = `<div class="search-result-item">No results.</div>`;
     } else {
       box.innerHTML = "";
       results.forEach((r) => {
@@ -628,60 +831,71 @@ function initGlobalSearch() {
         box.appendChild(div);
       });
     }
-    box.style.display = "block";
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!box.contains(e.target) && e.target !== input) {
-      box.style.display = "none";
-    }
   });
 }
 
 // ===============================
-// MAIN ENTRY
+// NAVIGATION
 // ===============================
+function initNavigation() {
+  // Bottom navigation is implicit via header buttons + views
+  // Movements is default view
+  showView("viewMovements");
 
-document.addEventListener("DOMContentLoaded", () => {
-  const isLoginPage = !!document.getElementById("loginForm");
-
-  if (isLoginPage) {
-    initLoginPage();
-    return;
-  }
-
-  // Index page
-  seedInitialData();
-
-  const user = getCurrentUser();
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  // Show user info
-  const userBox = document.getElementById("currentUserBox");
-  if (userBox) {
-    userBox.textContent = `${user.displayName} (${user.role})`;
-  }
-
-  // Logout
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-      clearSession();
-      window.location.href = "login.html";
+  const headerSettingsBtn = document.getElementById("headerSettingsBtn");
+  if (headerSettingsBtn) {
+    headerSettingsBtn.addEventListener("click", () => {
+      showView("viewSettings");
     });
   }
 
-  setupAccordions();
-  setupSidebarNavigation();
-  applyRoleVisibility(user.role);
+  // Simple swipe via header: we keep Movements as main, others via internal navigation
+  // You can extend later with bottom nav if تحب
+}
 
-  initMembersSection();
-  initMovementsSection(user);
-  initStatisticsSection();
-  initMessagesSection(user);
-  initSettingsSection(user);
+// ===============================
+// LOGOUT
+// ===============================
+function initLogout() {
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!logoutBtn) return;
+  logoutBtn.addEventListener("click", () => {
+    clearSession();
+    currentUser = null;
+    showScreen("screenLogin");
+  });
+}
+
+// ===============================
+// HOME INIT
+// ===============================
+function initHomeViews() {
+  initLogout();
+  initNavigation();
+  initMovements();
+  initMembers();
+  initMessages();
+  initStatistics();
+  initSettings();
   initGlobalSearch();
+}
+
+// ===============================
+// PWA REGISTRATION
+// ===============================
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register("service-worker.js")
+      .catch(() => {});
+  }
+}
+
+// ===============================
+// MAIN
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  seedInitialData();
+  registerServiceWorker();
+  initLogin();
 });
