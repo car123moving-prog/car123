@@ -1,8 +1,5 @@
-// main.js – Realtime + UI v1 (Firebase Realtime + Notifications + Accordion + Tabs)
+// main.js — English UI, roles, edit, toast, Realtime DB
 
-// =========================
-// 1) Firebase setup
-// =========================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getDatabase,
@@ -13,7 +10,6 @@ import {
   push,
   onValue,
   onChildAdded,
-  serverTimestamp,
   update
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -31,9 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// =========================
-// 2) Helpers
-// =========================
+// Helpers
 async function hashPassword(password) {
   try {
     const enc = new TextEncoder();
@@ -41,8 +35,7 @@ async function hashPassword(password) {
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-  } catch (e) {
-    // fallback (غير آمن لكن يكفي للتطوير)
+  } catch {
     let h = 0;
     for (let i = 0; i < password.length; i++) {
       h = (h << 5) - h + password.charCodeAt(i);
@@ -97,47 +90,52 @@ function showMessage(el, msg, type = "error") {
   }
 }
 
-// Toast notification for messages
-function showToast(text) {
+function showToast(message) {
   let box = document.getElementById("toastBox");
   if (!box) {
     box = document.createElement("div");
     box.id = "toastBox";
     box.style.position = "fixed";
-    box.style.top = "70px";
-    box.style.right = "16px";
-    box.style.zIndex = "9999";
+    box.style.bottom = "20px";
+    box.style.right = "20px";
+    box.style.zIndex = "999999";
     box.style.display = "flex";
     box.style.flexDirection = "column";
-    box.style.gap = "8px";
+    box.style.gap = "10px";
     document.body.appendChild(box);
   }
+
   const toast = document.createElement("div");
-  toast.textContent = text;
+  toast.textContent = message;
   toast.style.background = "#0b3c6f";
   toast.style.color = "#fff";
-  toast.style.padding = "10px 14px";
-  toast.style.borderRadius = "8px";
-  toast.style.boxShadow = "0 6px 18px rgba(0,0,0,0.18)";
-  toast.style.fontSize = "13px";
+  toast.style.padding = "14px 18px";
+  toast.style.borderRadius = "10px";
+  toast.style.fontSize = "15px";
+  toast.style.boxShadow = "0 6px 18px rgba(0,0,0,0.25)";
+  toast.style.opacity = "0";
+  toast.style.transition = "opacity 0.3s ease";
+
   box.appendChild(toast);
+
   setTimeout(() => {
-    toast.remove();
+    toast.style.opacity = "1";
+  }, 50);
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 300);
   }, 4000);
 }
 
-// =========================
-// 3) Global state
-// =========================
+// State
 let currentUser = null;
 let requirePasswordChange = false;
 let movementsCache = [];
 let usersCache = [];
 let messagesCache = [];
 
-// =========================
-// 4) Firebase data helpers
-// =========================
+// Firebase helpers
 async function ensureDefaultUsers() {
   const snap = await get(ref(db, "users"));
   if (!snap.exists()) {
@@ -185,12 +183,12 @@ function listenMovements() {
       }));
     }
     renderMovementsList();
+    updateStatsSummary();
   });
 }
 
 function listenMessages() {
   const messagesRef = ref(db, "messages");
-  // تحديث القائمة كاملة
   onValue(messagesRef, (snapshot) => {
     messagesCache = [];
     if (snapshot.exists()) {
@@ -202,19 +200,16 @@ function listenMessages() {
     }
     renderMessagesList();
   });
-  // إشعار عند وصول رسالة جديدة
+
   onChildAdded(messagesRef, (snapshot) => {
     const msg = snapshot.val();
     if (!currentUser) return;
-    // لا نعرض إشعار للرسالة التي أرسلها نفس المستخدم
-    if (msg.fromUsername && msg.fromUsername === currentUser.username) return;
+    if (msg.fromUsername === currentUser.username) return;
     showToast(`New message from ${msg.fromDisplayName || msg.fromUsername}`);
   });
 }
 
-// =========================
-// 5) Login & session
-// =========================
+// Session
 function saveSessionLocal(user) {
   const safe = {
     username: user.username,
@@ -247,6 +242,25 @@ function updateUserBar() {
   if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
 }
 
+function applyRoleVisibility() {
+  const isAdmin = currentUser && currentUser.role === "admin";
+  const membersTab = document.querySelector('.tab-btn[data-view="viewMembers"]');
+  const statsTab = document.querySelector('.tab-btn[data-view="viewStatistics"]');
+  const settingsTab = document.querySelector('.tab-btn[data-view="viewSettings"]');
+
+  if (membersTab) membersTab.style.display = isAdmin ? "" : "none";
+  if (statsTab) statsTab.style.display = isAdmin ? "" : "none";
+  if (settingsTab) settingsTab.style.display = isAdmin ? "" : "none";
+
+  if (!isAdmin) {
+    if (document.getElementById("viewMembers").classList.contains("active") ||
+        document.getElementById("viewStatistics").classList.contains("active") ||
+        document.getElementById("viewSettings").classList.contains("active")) {
+      showView("viewMovements");
+    }
+  }
+}
+
 function disableTabsExceptSettings(disable) {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     if (btn.dataset.view !== "viewSettings") {
@@ -257,9 +271,12 @@ function disableTabsExceptSettings(disable) {
   });
 }
 
+// UI init
 function initTabs() {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
+      if (!currentUser) return;
+      if (requirePasswordChange && btn.dataset.view !== "viewSettings") return;
       showView(btn.dataset.view);
     });
   });
@@ -273,7 +290,6 @@ function initCollapsibles() {
       const body = document.getElementById(target);
       if (!body) return;
       const open = body.classList.contains("open");
-      // أكورديون: نغلق الكل ونفتح واحد فقط
       document.querySelectorAll(".collapsible-body").forEach((b) => {
         b.classList.remove("open");
       });
@@ -286,11 +302,11 @@ function initCollapsibles() {
     });
   });
 
-  // نجعل قسم "Add Movement" مفتوح دائمًا افتراضيًا
   const addMovementBody = document.getElementById("addMovementBody");
   if (addMovementBody) addMovementBody.classList.add("open");
 }
 
+// Login
 async function handleLogin() {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("loginUsername");
@@ -311,7 +327,7 @@ async function handleLogin() {
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
     if (!username || !password) {
-      showMessage(loginError, "الرجاء إدخال اسم المستخدم وكلمة المرور.");
+      showMessage(loginError, "Please enter username and password.");
       return;
     }
 
@@ -320,12 +336,12 @@ async function handleLogin() {
 
     const found = usersCache.find((u) => u.username === username);
     if (!found) {
-      showMessage(loginError, "اسم المستخدم أو كلمة المرور غير صحيحة.");
+      showMessage(loginError, "Invalid username or password.");
       return;
     }
     const hash = await hashPassword(password);
     if (found.passwordHash !== hash) {
-      showMessage(loginError, "اسم المستخدم أو كلمة المرور غير صحيحة.");
+      showMessage(loginError, "Invalid username or password.");
       return;
     }
 
@@ -350,6 +366,7 @@ async function handleLogin() {
 function enterApp() {
   showScreen("screenHome");
   updateUserBar();
+  applyRoleVisibility();
   initTabs();
   initCollapsibles();
   initLogout();
@@ -366,7 +383,7 @@ function enterApp() {
     requirePasswordChange = true;
     showView("viewSettings");
     disableTabsExceptSettings(true);
-    showToast("Please change your password (Settings).");
+    showToast("Please change your password in Settings.");
   } else {
     requirePasswordChange = false;
     disableTabsExceptSettings(false);
@@ -383,18 +400,18 @@ function initLogout() {
   });
 }
 
-// =========================
-// 6) Movements
-// =========================
+// Movements
 function renderDriverSelect() {
   const select = document.getElementById("movementDriverSelect");
-  if (!select) return;
-  select.innerHTML = "";
+  const editSelect = document.getElementById("editMovementDriverSelect");
+  if (select) select.innerHTML = "";
+  if (editSelect) editSelect.innerHTML = "";
   usersCache.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
     opt.textContent = `${u.displayName} (${u.username})`;
-    select.appendChild(opt);
+    if (select) select.appendChild(opt.cloneNode(true));
+    if (editSelect) editSelect.appendChild(opt);
   });
 }
 
@@ -435,6 +452,14 @@ function buildMovementItem(m) {
 
   const actions = document.createElement("div");
   actions.className = "list-item-actions";
+
+  if (currentUser && currentUser.role === "admin") {
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "action-btn";
+    btnEdit.textContent = "Edit";
+    btnEdit.addEventListener("click", () => openEditMovementModal(m));
+    actions.appendChild(btnEdit);
+  }
 
   const btnShare = document.createElement("button");
   btnShare.className = "action-btn";
@@ -526,6 +551,74 @@ function initMovements() {
     form.reset();
     showMessage(successBox, "Movement saved.", "success");
   });
+
+  initEditMovementModal();
+}
+
+function openEditMovementModal(m) {
+  const modal = document.getElementById("editMovementModal");
+  if (!modal) return;
+  document.getElementById("editMovementId").value = m.id;
+  document.getElementById("editMovementType").value = m.type;
+  document.getElementById("editMovementCarNumber").value = m.carNumber;
+  document.getElementById("editMovementPlate").value = m.plate;
+  document.getElementById("editMovementDriverSelect").value = m.driverUsername;
+  document.getElementById("editMovementNotes").value = m.notes || "";
+  modal.classList.add("active");
+}
+
+function initEditMovementModal() {
+  const modal = document.getElementById("editMovementModal");
+  const closeBtn = document.getElementById("closeEditMovementBtn");
+  const form = document.getElementById("editMovementForm");
+  const errorBox = document.getElementById("editMovementError");
+  const successBox = document.getElementById("editMovementSuccess");
+  if (!modal || !closeBtn || !form) return;
+
+  closeBtn.addEventListener("click", () => {
+    modal.classList.remove("active");
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role !== "admin") return;
+
+    const id = document.getElementById("editMovementId").value;
+    const type = document.getElementById("editMovementType").value;
+    const carNumber = document.getElementById("editMovementCarNumber").value.trim();
+    const plate = document.getElementById("editMovementPlate").value.trim();
+    const driverUsername = document.getElementById("editMovementDriverSelect").value;
+    const notes = document.getElementById("editMovementNotes").value.trim();
+
+    if (!carNumber || !plate || !driverUsername) {
+      showMessage(errorBox, "Please fill required fields.");
+      return;
+    }
+
+    const driver = usersCache.find((u) => u.username === driverUsername);
+    const existing = movementsCache.find((m) => m.id === id);
+    if (!existing) {
+      showMessage(errorBox, "Movement not found.");
+      return;
+    }
+
+    const updated = {
+      ...existing,
+      type,
+      carNumber,
+      plate,
+      driverUsername,
+      driverName: driver ? driver.displayName : driverUsername,
+      notes
+    };
+
+    await set(ref(db, `movements/${id}`), updated);
+    showMessage(successBox, "Movement updated.", "success");
+    setTimeout(() => {
+      modal.classList.remove("active");
+      form.reset();
+    }, 800);
+  });
 }
 
 function shareMovement(m) {
@@ -547,12 +640,11 @@ function printMovement(m) {
 }
 
 async function deleteMovement(id) {
+  if (!confirm("Delete this movement?")) return;
   await set(ref(db, `movements/${id}`), null);
 }
 
-// =========================
-// 7) Members
-// =========================
+// Members
 function renderMembersList() {
   const container = document.getElementById("membersList");
   if (!container) return;
@@ -617,6 +709,10 @@ function initMembers() {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!currentUser || currentUser.role !== "admin") {
+      showMessage(errorBox, "Only admin can add members.");
+      return;
+    }
     if (requirePasswordChange) {
       showMessage(errorBox, "You must change your password first (Settings).");
       return;
@@ -658,9 +754,7 @@ function initMembers() {
   });
 }
 
-// =========================
-// 8) Messages
-// =========================
+// Messages
 function renderMessagesList() {
   const container = document.getElementById("messagesList");
   if (!container) return;
@@ -735,9 +829,7 @@ function initMessages() {
   });
 }
 
-// =========================
-// 9) Statistics
-// =========================
+// Statistics
 function updateStatsSummary() {
   const box = document.getElementById("statsSummaryBox");
   if (!box) return;
@@ -806,9 +898,7 @@ function initStatistics() {
   }
 }
 
-// =========================
-// 10) Settings
-// =========================
+// Settings
 function initSettings() {
   const passForm = document.getElementById("changePasswordForm");
   const passError = document.getElementById("changePasswordError");
@@ -897,9 +987,7 @@ function initSettings() {
   }
 }
 
-// =========================
-// 11) Global search
-// =========================
+// Global search
 function initGlobalSearch() {
   const overlay = document.getElementById("searchOverlay");
   const openBtn = document.getElementById("headerSearchBtn");
@@ -997,9 +1085,7 @@ function initGlobalSearch() {
   });
 }
 
-// =========================
-// 12) Bootstrap
-// =========================
+// Bootstrap
 document.addEventListener("DOMContentLoaded", async () => {
   showScreen("screenLogin");
   await ensureDefaultUsers();
