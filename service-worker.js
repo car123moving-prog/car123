@@ -1,10 +1,10 @@
-const CACHE_NAME = "cms-v2.1-cache";
+const CACHE_NAME = "cms-v2.1.1-cache";
 const ASSETS = [
   "index.html",
   "main.css",
   "main.js",
   "manifest.json",
-  "masoud-logo.png"
+  "al-masaood-logo.png"
 ];
 
 self.addEventListener("install", (event) => {
