@@ -1,6 +1,3 @@
-// ===============================
-// STORAGE KEYS
-// ===============================
 const STORAGE_KEYS = {
   USERS: "cms_users",
   MOVEMENTS: "cms_movements",
@@ -8,14 +5,11 @@ const STORAGE_KEYS = {
   SESSION: "cms_session",
 };
 
-// ===============================
-// TIMEZONE (Gulf Standard Time +4)
-// ===============================
+// TIMEZONE +4
 function getGulfNow() {
   const now = new Date();
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const gulf = new Date(utc + 4 * 60 * 60 * 1000);
-  return gulf;
+  return new Date(utc + 4 * 60 * 60 * 1000);
 }
 
 function formatDateTime(dt) {
@@ -30,9 +24,6 @@ function formatDateTime(dt) {
   return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
 }
 
-// ===============================
-// LOCAL STORAGE HELPERS
-// ===============================
 function getArray(key) {
   const raw = localStorage.getItem(key);
   if (!raw) return [];
@@ -47,12 +38,9 @@ function saveArray(key, arr) {
   localStorage.setItem(key, JSON.stringify(arr));
 }
 
-// ===============================
-// SEED DATA
-// ===============================
 function seedInitialData() {
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
-    const defaultUsers = [
+    saveArray(STORAGE_KEYS.USERS, [
       {
         username: "admin",
         password: "1234",
@@ -67,22 +55,16 @@ function seedInitialData() {
         phone: "",
         role: "user",
       },
-    ];
-    saveArray(STORAGE_KEYS.USERS, defaultUsers);
+    ]);
   }
-
   if (!localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) {
     saveArray(STORAGE_KEYS.MOVEMENTS, []);
   }
-
   if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
     saveArray(STORAGE_KEYS.MESSAGES, []);
   }
 }
 
-// ===============================
-// SESSION
-// ===============================
 function saveSession(user) {
   localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
 }
@@ -101,9 +83,6 @@ function clearSession() {
   localStorage.removeItem(STORAGE_KEYS.SESSION);
 }
 
-// ===============================
-// UI HELPERS
-// ===============================
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.toggle("active", s.id === id);
@@ -113,6 +92,9 @@ function showScreen(id) {
 function showView(id) {
   document.querySelectorAll(".view").forEach((v) => {
     v.classList.toggle("active", v.id === id);
+  });
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === id);
   });
 }
 
@@ -128,9 +110,8 @@ function showMessage(el, msg, type = "error") {
   }
 }
 
-// ===============================
-// LOGIN
-// ===============================
+let currentUser = null;
+
 function initLogin() {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("loginUsername");
@@ -169,21 +150,21 @@ function initLogin() {
   });
 }
 
-// ===============================
-// ENTER APP
-// ===============================
-let currentUser = null;
-
 function enterApp(user) {
   currentUser = user;
   showScreen("screenHome");
   updateUserBar();
-  initHomeViews();
+  initTabs();
+  initCollapsibles();
+  initMovements();
+  initMembers();
+  initMessages();
+  initStatistics();
+  initSettings();
+  initGlobalSearch();
+  initLogout();
 }
 
-// ===============================
-// USER BAR
-// ===============================
 function updateUserBar() {
   const nameEl = document.getElementById("currentUserName");
   const roleEl = document.getElementById("currentUserRole");
@@ -192,9 +173,35 @@ function updateUserBar() {
   if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
 }
 
-// ===============================
+function initTabs() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const viewId = btn.dataset.view;
+      showView(viewId);
+    });
+  });
+  showView("viewMovements");
+}
+
+function initCollapsibles() {
+  document.querySelectorAll(".collapsible-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      const targetId = header.getAttribute("data-target");
+      const body = document.getElementById(targetId);
+      if (!body) return;
+      const open = body.classList.contains("open");
+      document.querySelectorAll(".collapsible-body").forEach((b) => {
+        if (b.id === targetId) {
+          b.classList.toggle("open", !open);
+        }
+      });
+      const indicator = header.querySelector(".collapse-indicator");
+      if (indicator) indicator.textContent = open ? "▲" : "▼";
+    });
+  });
+}
+
 // MOVEMENTS
-// ===============================
 function renderDriverSelect() {
   const select = document.getElementById("movementDriverSelect");
   if (!select) return;
@@ -222,9 +229,10 @@ function renderMovementsList() {
   movements
     .slice()
     .reverse()
-    .forEach((m, index) => {
+    .forEach((m) => {
       const div = document.createElement("div");
       div.className = "list-item";
+      div.id = `movement-${m.id}`;
 
       const header = document.createElement("div");
       header.className = "list-item-header";
@@ -302,13 +310,6 @@ function initMovements() {
   const form = document.getElementById("addMovementForm");
   const errorBox = document.getElementById("addMovementError");
   const successBox = document.getElementById("addMovementSuccess");
-  const refreshBtn = document.getElementById("refreshMovementsBtn");
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", () => {
-      renderMovementsList();
-    });
-  }
 
   if (!form) return;
 
@@ -342,7 +343,7 @@ function initMovements() {
       driverUsername,
       driverName,
       notes,
-      createdBy: currentUser.displayName || currentUser.username,
+      createdBy: currentUser.username,
       date: formatDateTime(now),
     };
 
@@ -365,14 +366,13 @@ function editMovement(id) {
   document.getElementById("movementNotes").value = m.notes || "";
   document.getElementById("movementDriverSelect").value = m.driverUsername;
   deleteMovement(id, false);
+  showView("viewMovements");
 }
 
 function shareMovement(m) {
   const text = `Movement: ${m.type.toUpperCase()} | Car ${m.carNumber} | Plate ${m.plate} | Driver ${m.driverName} | Date ${m.date} | Notes: ${m.notes || "-"}`;
   if (navigator.share) {
-    navigator
-      .share({ text })
-      .catch(() => {});
+    navigator.share({ text }).catch(() => {});
   } else {
     alert(text);
   }
@@ -394,9 +394,7 @@ function deleteMovement(id, rerender = true) {
   if (rerender) renderMovementsList();
 }
 
-// ===============================
 // MEMBERS
-// ===============================
 function renderMembersList() {
   const container = document.getElementById("membersList");
   if (!container) return;
@@ -411,6 +409,7 @@ function renderMembersList() {
   users.forEach((u) => {
     const div = document.createElement("div");
     div.className = "list-item";
+    div.id = `member-${u.username}`;
 
     const header = document.createElement("div");
     header.className = "list-item-header";
@@ -433,6 +432,38 @@ function renderMembersList() {
     div.appendChild(meta);
 
     container.appendChild(div);
+  });
+}
+
+function renderMessageTargets() {
+  const select = document.getElementById("messageTarget");
+  if (!select) return;
+  const users = getArray(STORAGE_KEYS.USERS);
+  select.innerHTML = "";
+
+  const optAll = document.createElement("option");
+  optAll.value = "all";
+  optAll.textContent = "All";
+  select.appendChild(optAll);
+
+  users.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    select.appendChild(opt);
+  });
+}
+
+function renderStatsUsers() {
+  const select = document.getElementById("statsUserSelect");
+  if (!select) return;
+  const users = getArray(STORAGE_KEYS.USERS);
+  select.innerHTML = "";
+  users.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    select.appendChild(opt);
   });
 }
 
@@ -478,28 +509,7 @@ function initMembers() {
   });
 }
 
-// ===============================
 // MESSAGES
-// ===============================
-function renderMessageTargets() {
-  const select = document.getElementById("messageTarget");
-  if (!select) return;
-  const users = getArray(STORAGE_KEYS.USERS);
-  select.innerHTML = "";
-
-  const optAll = document.createElement("option");
-  optAll.value = "all";
-  optAll.textContent = "All";
-  select.appendChild(optAll);
-
-  users.forEach((u) => {
-    const opt = document.createElement("option");
-    opt.value = u.username;
-    opt.textContent = `${u.displayName} (${u.username})`;
-    select.appendChild(opt);
-  });
-}
-
 function renderMessagesList() {
   const container = document.getElementById("messagesList");
   if (!container) return;
@@ -517,6 +527,7 @@ function renderMessagesList() {
     .forEach((msg) => {
       const div = document.createElement("div");
       div.className = "list-item";
+      div.id = `message-${msg.id}`;
 
       const from = document.createElement("div");
       from.className = "message-from";
@@ -587,9 +598,7 @@ function initMessages() {
   });
 }
 
-// ===============================
 // STATISTICS
-// ===============================
 function updateStatsSummary() {
   const box = document.getElementById("statsSummaryBox");
   if (!box) return;
@@ -606,30 +615,16 @@ function updateStatsSummary() {
   `;
 }
 
-function renderStatsUsers() {
-  const select = document.getElementById("statsUserSelect");
-  if (!select) return;
-  const users = getArray(STORAGE_KEYS.USERS);
-  select.innerHTML = "";
-  users.forEach((u) => {
-    const opt = document.createElement("option");
-    opt.value = u.username;
-    opt.textContent = `${u.displayName} (${u.username})`;
-    select.appendChild(opt);
-  });
-}
-
 function initStatistics() {
   updateStatsSummary();
   renderStatsUsers();
-
-  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
 
   const formRange = document.getElementById("statsRangeForm");
   const rangeResult = document.getElementById("statsRangeResult");
   if (formRange) {
     formRange.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const fromDate = document.getElementById("statsFromDate").value;
       const toDate = document.getElementById("statsToDate").value;
 
@@ -655,6 +650,7 @@ function initStatistics() {
   if (formUser) {
     formUser.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const selected = document.getElementById("statsUserSelect").value;
       const count = movements.filter(
         (m) => m.createdBy === selected || m.driverUsername === selected
@@ -668,6 +664,7 @@ function initStatistics() {
   if (formCar) {
     formCar.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const carNumber = document.getElementById("statsCarNumber").value.trim();
       if (!carNumber) {
         carResult.textContent = "Please enter car number.";
@@ -681,9 +678,7 @@ function initStatistics() {
   }
 }
 
-// ===============================
 // SETTINGS
-// ===============================
 function initSettings() {
   const passForm = document.getElementById("changePasswordForm");
   const passError = document.getElementById("changePasswordError");
@@ -763,9 +758,7 @@ function initSettings() {
   }
 }
 
-// ===============================
-// GLOBAL SEARCH
-// ===============================
+// GLOBAL SEARCH (يقفز للعنصر)
 function initGlobalSearch() {
   const overlay = document.getElementById("searchOverlay");
   const openBtn = document.getElementById("headerSearchBtn");
@@ -802,21 +795,33 @@ function initGlobalSearch() {
     movements.forEach((m) => {
       const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
       if (text.includes(term)) {
-        results.push(`Movement: ${m.carNumber} / ${m.plate} / ${m.driverName}`);
+        results.push({
+          type: "movement",
+          id: m.id,
+          label: `Movement: ${m.carNumber} / ${m.plate} / ${m.driverName}`,
+        });
       }
     });
 
     users.forEach((u) => {
       const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
       if (text.includes(term)) {
-        results.push(`User: ${u.displayName} (${u.username})`);
+        results.push({
+          type: "member",
+          id: u.username,
+          label: `Member: ${u.displayName} (${u.username})`,
+        });
       }
     });
 
     messages.forEach((msg) => {
       const text = `${msg.text} ${msg.from} ${msg.toLabel}`.toLowerCase();
       if (text.includes(term)) {
-        results.push(`Message: ${msg.text}`);
+        results.push({
+          type: "message",
+          id: msg.id,
+          label: `Message: ${msg.text}`,
+        });
       }
     });
 
@@ -827,35 +832,36 @@ function initGlobalSearch() {
       results.forEach((r) => {
         const div = document.createElement("div");
         div.className = "search-result-item";
-        div.textContent = r;
+        div.textContent = r.label;
+        div.addEventListener("click", () => {
+          overlay.classList.remove("active");
+          if (r.type === "movement") {
+            showView("viewMovements");
+            setTimeout(() => {
+              const el = document.getElementById(`movement-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "member") {
+            showView("viewMembers");
+            setTimeout(() => {
+              const el = document.getElementById(`member-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "message") {
+            showView("viewMessages");
+            setTimeout(() => {
+              const el = document.getElementById(`message-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          }
+        });
         box.appendChild(div);
       });
     }
   });
 }
 
-// ===============================
-// NAVIGATION
-// ===============================
-function initNavigation() {
-  // Bottom navigation is implicit via header buttons + views
-  // Movements is default view
-  showView("viewMovements");
-
-  const headerSettingsBtn = document.getElementById("headerSettingsBtn");
-  if (headerSettingsBtn) {
-    headerSettingsBtn.addEventListener("click", () => {
-      showView("viewSettings");
-    });
-  }
-
-  // Simple swipe via header: we keep Movements as main, others via internal navigation
-  // You can extend later with bottom nav if تحب
-}
-
-// ===============================
 // LOGOUT
-// ===============================
 function initLogout() {
   const logoutBtn = document.getElementById("logoutBtn");
   if (!logoutBtn) return;
@@ -866,34 +872,13 @@ function initLogout() {
   });
 }
 
-// ===============================
-// HOME INIT
-// ===============================
-function initHomeViews() {
-  initLogout();
-  initNavigation();
-  initMovements();
-  initMembers();
-  initMessages();
-  initStatistics();
-  initSettings();
-  initGlobalSearch();
-}
-
-// ===============================
-// PWA REGISTRATION
-// ===============================
+// PWA
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .catch(() => {});
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
   }
 }
 
-// ===============================
-// MAIN
-// ===============================
 document.addEventListener("DOMContentLoaded", () => {
   seedInitialData();
   registerServiceWorker();
