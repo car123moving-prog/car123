@@ -1,33 +1,19 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <title>Car Movement System v1</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- PWA -->
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0b3c6f" />
-
-  <!-- Styles -->
   <link rel="stylesheet" href="main.css" />
-
-  <!-- Luxon for timezone handling -->
   <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.0/build/global/luxon.min.js"></script>
-
-  <!-- Firebase compat SDKs (used by main.js when FIREBASE_MODE true) -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
-
   <div id="app">
-
-    <!-- HEADER -->
     <header class="app-header">
       <div class="header-left">
-        <img src="al-masaood-logo.png" alt="Al Masaood" class="logo" />
+        <img src="al-masaood-logo.png" alt="Logo" class="logo" />
         <div class="header-title">
           <div class="app-name">Car Movement System</div>
           <div class="app-subtitle">Al Masaood Group</div>
@@ -38,13 +24,10 @@
       </div>
     </header>
 
-    <!-- MAIN -->
     <main class="app-main">
-
-      <!-- LOGIN -->
       <section id="screenLogin" class="screen active">
         <div class="center-container">
-          <img src="al-masaood-logo.png" alt="Al Masaood" class="logo-large" />
+          <img src="al-masaood-logo.png" alt="Logo" class="logo-large" />
           <h1 class="login-title">Car Movement System</h1>
           <h2 class="login-subtitle">Sign in</h2>
 
@@ -62,10 +45,7 @@
         </div>
       </section>
 
-      <!-- APP -->
       <section id="screenHome" class="screen">
-
-        <!-- USER BAR -->
         <div class="user-bar">
           <div>
             <div id="currentUserName" class="user-name"></div>
@@ -74,7 +54,6 @@
           <button id="logoutBtn" class="text-btn danger">Logout</button>
         </div>
 
-        <!-- SEARCH OVERLAY -->
         <div id="searchOverlay" class="search-overlay">
           <div class="search-panel card">
             <div class="search-header">
@@ -85,7 +64,6 @@
           </div>
         </div>
 
-        <!-- TABS -->
         <div class="tabs-bar">
           <button class="tab-btn active" data-view="viewMovements">Movements</button>
           <button class="tab-btn" data-view="viewMembers">Members</button>
@@ -94,15 +72,12 @@
           <button class="tab-btn" data-view="viewSettings">Settings</button>
         </div>
 
-        <!-- VIEWS -->
-        <!-- MOVEMENTS -->
         <div id="viewMovements" class="view active">
           <div class="view-header">
             <h2>Movements</h2>
             <div class="view-header-sub">Main operations screen</div>
           </div>
 
-          <!-- ADD MOVEMENT -->
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="addMovementBody">
               <div>
@@ -143,7 +118,6 @@
             </div>
           </div>
 
-          <!-- MOVEMENTS LIST -->
           <div class="card">
             <div class="card-header-row collapsible-header" data-target="movementsListBody">
               <div>
@@ -158,7 +132,6 @@
           </div>
         </div>
 
-        <!-- MEMBERS -->
         <div id="viewMembers" class="view">
           <div class="view-header">
             <h2>Members</h2>
@@ -219,7 +192,6 @@
           </div>
         </div>
 
-        <!-- MESSAGES -->
         <div id="viewMessages" class="view">
           <div class="view-header">
             <h2>Messages</h2>
@@ -265,7 +237,6 @@
           </div>
         </div>
 
-        <!-- STATISTICS -->
         <div id="viewStatistics" class="view">
           <div class="view-header">
             <h2>Statistics</h2>
@@ -346,7 +317,6 @@
           </div>
         </div>
 
-        <!-- SETTINGS -->
         <div id="viewSettings" class="view">
           <div class="view-header">
             <h2>Settings</h2>
@@ -405,7 +375,6 @@
       </section>
     </main>
 
-    <!-- FOOTER -->
     <footer class="app-footer">
       <div class="footer-left">
         <span>© Al Masaood Group</span>
@@ -414,7 +383,6 @@
         <span>Developed by Mohamed Saad · v1</span>
       </div>
     </footer>
-
   </div>
 
   <script src="main.js"></script>
