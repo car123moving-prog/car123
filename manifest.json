@@ -1,0 +1,15 @@
+{
+  "name": "Car Movement System v2.1",
+  "short_name": "Car Movement",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b3c6f",
+  "theme_color": "#0b3c6f",
+  "icons": [
+    {
+      "src": "masoud-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
