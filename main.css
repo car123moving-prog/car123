@@ -1,90 +1,74 @@
-/* ================================
-   GLOBAL RESET
-================================ */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
 body {
   background: #f5f7fb;
   color: #1f2933;
-  overflow-x: hidden;
 }
 
-/* ================================
-   APP SHELL
-================================ */
 #app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* ================================
-   HEADER
-================================ */
+/* Header */
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 14px;
+  padding: 10px 14px;
   background: #0b3c6f;
   color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 20;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .logo {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 
 .logo-large {
-  width: 90px;
-  height: 90px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .header-title .app-name {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .header-title .app-subtitle {
   font-size: 12px;
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
 .header-right {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* ================================
-   BUTTONS
-================================ */
+/* Buttons */
 .btn-primary {
   background: #0b3c6f;
   color: #fff;
   border: none;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
   cursor: pointer;
-  width: 100%;
 }
 
 .btn-primary:hover {
@@ -95,7 +79,7 @@ body {
   background: transparent;
   border: none;
   color: #e5efff;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -107,17 +91,17 @@ body {
   text-decoration: underline;
 }
 
-/* ================================
-   MAIN
-================================ */
-.app-main {
-  flex: 1;
-  padding: 12px;
+.full-width {
+  width: 100%;
 }
 
-/* ================================
-   SCREENS
-================================ */
+/* Main */
+.app-main {
+  flex: 1;
+  padding: 10px;
+}
+
+/* Screens */
 .screen {
   display: none;
 }
@@ -126,11 +110,9 @@ body {
   display: block;
 }
 
-/* ================================
-   LOGIN SCREEN
-================================ */
+/* Centered login */
 .center-container {
-  min-height: calc(100vh - 140px);
+  min-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -138,54 +120,52 @@ body {
 }
 
 .login-title {
-  font-size: 24px;
-  margin-bottom: 6px;
+  font-size: 22px;
+  margin-bottom: 4px;
 }
 
 .login-subtitle {
   font-size: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   color: #4b5563;
 }
 
 .login-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
 }
 
 .login-card input {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .login-footer {
-  margin-top: 18px;
-  font-size: 13px;
+  margin-top: 16px;
+  font-size: 12px;
   color: #6b7280;
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* ================================
-   TABS (BIG RECTANGULAR BUTTONS)
-================================ */
+/* Tabs bar (big rectangular buttons) */
 .tabs-bar {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .tab-btn {
-  padding: 14px;
-  border-radius: 12px;
+  padding: 10px;
+  border-radius: 10px;
   border: 1px solid #d1d5db;
   background: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #0b3c6f;
   text-align: center;
@@ -198,29 +178,25 @@ body {
   border-color: #0b3c6f;
 }
 
-/* ================================
-   USER BAR
-================================ */
+/* User bar */
 .user-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .user-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .user-role {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
 }
 
-/* ================================
-   VIEWS
-================================ */
+/* Views */
 .view {
   display: none;
 }
@@ -230,36 +206,34 @@ body {
 }
 
 .view-header {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .view-header h2 {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .view-header-sub {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
 }
 
-/* ================================
-   CARDS
-================================ */
+/* Cards */
 .card {
   background: #ffffff;
-  border-radius: 14px;
-  padding: 12px 12px 10px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  padding: 10px 10px 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
 .card-title {
-  font-size: 17px;
-  margin-bottom: 4px;
+  font-size: 16px;
+  margin-bottom: 2px;
 }
 
 .card-subtitle {
-  font-size: 13px;
+  font-size: 12px;
   color: #6b7280;
 }
 
@@ -269,20 +243,18 @@ body {
   align-items: center;
 }
 
-/* ================================
-   COLLAPSIBLE
-================================ */
+/* Collapsible */
 .collapsible-header {
   cursor: pointer;
 }
 
 .collapse-indicator {
-  font-size: 16px;
+  font-size: 14px;
   color: #6b7280;
 }
 
 .collapsible-body {
-  margin-top: 8px;
+  margin-top: 6px;
   display: none;
 }
 
@@ -290,29 +262,27 @@ body {
   display: block;
 }
 
-/* ================================
-   FORMS
-================================ */
+/* Forms */
 .form-grid {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .form-grid.inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
 }
 
 .form-row {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   width: 100%;
 }
 
 .form-row label {
   display: block;
-  font-size: 14px;
-  margin-bottom: 4px;
+  font-size: 13px;
+  margin-bottom: 3px;
   color: #374151;
 }
 
@@ -320,27 +290,25 @@ body {
 .form-row select,
 .form-row textarea {
   width: 100%;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .form-row textarea {
-  min-height: 70px;
+  min-height: 60px;
 }
 
-/* ================================
-   LISTS
-================================ */
+/* Lists */
 .list {
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .list-item {
-  padding: 10px 6px;
+  padding: 8px 6px;
   border-bottom: 1px solid #e5e7eb;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .list-item:last-child {
@@ -350,14 +318,14 @@ body {
 .list-item-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .badge {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11px;
   color: #fff;
 }
 
@@ -370,24 +338,24 @@ body {
 }
 
 .list-item-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .list-item-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .action-btn {
   border: none;
   background: #e5efff;
   border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12px;
+  padding: 4px 8px;
+  font-size: 11px;
   color: #0b3c6f;
   cursor: pointer;
 }
@@ -397,27 +365,41 @@ body {
   color: #e02424;
 }
 
-/* ================================
-   MESSAGES
-================================ */
+/* Messages */
 .message-from {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .message-text {
-  font-size: 14px;
-  margin-top: 4px;
+  font-size: 13px;
+  margin-top: 2px;
 }
 
 .message-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
 }
 
-/* ================================
-   SEARCH OVERLAY
-================================ */
+/* Text helpers */
+.error-text {
+  color: #e02424;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.success-text {
+  color: #059669;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.info-text {
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+/* Search overlay */
 .search-overlay {
   position: fixed;
   inset: 0;
@@ -425,8 +407,8 @@ body {
   display: none;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 80px;
-  z-index: 30;
+  padding-top: 60px;
+  z-index: 20;
 }
 
 .search-overlay.active {
@@ -440,49 +422,45 @@ body {
 
 .search-header {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 .search-header input {
   flex: 1;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 8px;
+  border-radius: 8px;
   border: 1px solid #d1d5db;
-  font-size: 15px;
-}
-
-.search-results {
-  max-height: 350px;
-  overflow-y: auto;
   font-size: 14px;
 }
 
+.search-results {
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
 .search-result-item {
-  padding: 10px 6px;
+  padding: 6px 4px;
   border-bottom: 1px solid #e5e7eb;
   cursor: pointer;
 }
 
-/* ================================
-   FOOTER
-================================ */
+/* Footer */
 .app-footer {
-  padding: 10px 12px;
+  padding: 6px 10px;
   background: #ffffff;
   border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11px;
   color: #6b7280;
 }
 
-/* ================================
-   RESPONSIVE
-================================ */
+/* Responsive */
 @media (min-width: 768px) {
   .app-main {
-    max-width: 760px;
+    max-width: 720px;
     margin: 0 auto;
   }
 
