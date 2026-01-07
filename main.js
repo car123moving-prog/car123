@@ -1,50 +1,11 @@
-/* ============================================================
-   FIREBASE INITIALIZATION (CDN + MODULE)
-============================================================ */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  setDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  onSnapshot,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCREnC-6yJX4l1HpFVNNZgOvodBQkEri5g",
-  authDomain: "car123-moving.firebaseapp.com",
-  projectId: "car123-moving",
-  storageBucket: "car123-moving.firebasestorage.app",
-  messagingSenderId: "820235378242",
-  appId: "1:820235378242:web:94e0907a41a395c8bb17db"
+const STORAGE_KEYS = {
+  USERS: "cms_users",
+  MOVEMENTS: "cms_movements",
+  MESSAGES: "cms_messages",
+  SESSION: "cms_session",
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-/* Collections */
-const colUsers = collection(db, "users");
-const colMovements = collection(db, "movements");
-const colMessages = collection(db, "messages");
-
-/* ============================================================
-   GLOBAL CACHES
-============================================================ */
-let usersCache = [];
-let movementsCache = [];
-let messagesCache = [];
-
-/* ============================================================
-   TIMEZONE +4
-============================================================ */
+// TIMEZONE +4
 function getGulfNow() {
   const now = new Date();
   const utc = now.getTime() + now.getTimezoneOffset() * 60000;
@@ -63,17 +24,53 @@ function formatDateTime(dt) {
   return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
 }
 
-/* ============================================================
-   SESSION (LOCAL ONLY)
-============================================================ */
-const SESSION_KEY = "cms_session";
+function getArray(key) {
+  const raw = localStorage.getItem(key);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveArray(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+function seedInitialData() {
+  if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+    saveArray(STORAGE_KEYS.USERS, [
+      {
+        username: "admin",
+        password: "1234",
+        displayName: "Administrator",
+        phone: "",
+        role: "admin",
+      },
+      {
+        username: "user1",
+        password: "1234",
+        displayName: "User One",
+        phone: "",
+        role: "user",
+      },
+    ]);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) {
+    saveArray(STORAGE_KEYS.MOVEMENTS, []);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
+    saveArray(STORAGE_KEYS.MESSAGES, []);
+  }
+}
 
 function saveSession(user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+  localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(user));
 }
 
 function getCurrentUser() {
-  const raw = localStorage.getItem(SESSION_KEY);
+  const raw = localStorage.getItem(STORAGE_KEYS.SESSION);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -83,12 +80,9 @@ function getCurrentUser() {
 }
 
 function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(STORAGE_KEYS.SESSION);
 }
 
-/* ============================================================
-   UI HELPERS
-============================================================ */
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((s) => {
     s.classList.toggle("active", s.id === id);
@@ -99,7 +93,6 @@ function showView(id) {
   document.querySelectorAll(".view").forEach((v) => {
     v.classList.toggle("active", v.id === id);
   });
-
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.view === id);
   });
@@ -117,71 +110,7 @@ function showMessage(el, msg, type = "error") {
   }
 }
 
-/* ============================================================
-   SEED INITIAL DATA (ADMIN USER)
-============================================================ */
-async function seedAdminUserIfNeeded() {
-  const snap = await getDocs(colUsers);
-  if (!snap.empty) {
-    usersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return;
-  }
-
-  const adminDoc = doc(colUsers, "admin");
-  await setDoc(adminDoc, {
-    username: "admin",
-    password: "1234",
-    displayName: "Administrator",
-    phone: "",
-    role: "admin"
-  });
-
-  usersCache = [{ id: "admin", username: "admin", password: "1234", displayName: "Administrator", phone: "", role: "admin" }];
-}
-
-/* ============================================================
-   LOGIN
-============================================================ */
 let currentUser = null;
-
-function updateUserBar() {
-  const nameEl = document.getElementById("currentUserName");
-  const roleEl = document.getElementById("currentUserRole");
-  if (!currentUser) return;
-  nameEl.textContent = currentUser.displayName || currentUser.username;
-  roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
-}
-
-function initTabs() {
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      showView(btn.dataset.view);
-    });
-  });
-  showView("viewMovements");
-}
-
-function initCollapsibles() {
-  document.querySelectorAll(".collapsible-header").forEach((header) => {
-    header.addEventListener("click", () => {
-      const targetId = header.getAttribute("data-target");
-      const body = document.getElementById(targetId);
-      if (!body) return;
-      const open = body.classList.contains("open");
-      body.classList.toggle("open", !open);
-      const indicator = header.querySelector(".collapse-indicator");
-      if (indicator) indicator.textContent = open ? "▲" : "▼";
-    });
-  });
-}
-
-async function handleLogin(username, password) {
-  const q = query(colUsers, where("username", "==", username), where("password", "==", password));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const docSnap = snap.docs[0];
-  return { id: docSnap.id, ...docSnap.data() };
-}
 
 function initLogin() {
   const loginForm = document.getElementById("loginForm");
@@ -191,40 +120,38 @@ function initLogin() {
 
   const existing = getCurrentUser();
   if (existing) {
-    currentUser = existing;
-    enterApp();
+    enterApp(existing);
     return;
   }
 
   if (!loginForm) return;
 
-  loginForm.addEventListener("submit", async (e) => {
+  loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
+
     if (!username || !password) {
       showMessage(loginError, "Please enter username and password.");
       return;
     }
-    try {
-      const user = await handleLogin(username, password);
-      if (!user) {
-        showMessage(loginError, "Invalid username or password.");
-        return;
-      }
-      currentUser = user;
-      saveSession(user);
-      enterApp();
-    } catch {
-      showMessage(loginError, "Login error. Try again.");
+
+    const users = getArray(STORAGE_KEYS.USERS);
+    const found = users.find(
+      (u) => u.username === username && u.password === password
+    );
+    if (!found) {
+      showMessage(loginError, "Invalid username or password.");
+      return;
     }
+
+    saveSession(found);
+    enterApp(found);
   });
 }
 
-/* ============================================================
-   ENTER APP
-============================================================ */
-function enterApp() {
+function enterApp(user) {
+  currentUser = user;
   showScreen("screenHome");
   updateUserBar();
   initTabs();
@@ -238,14 +165,49 @@ function enterApp() {
   initLogout();
 }
 
-/* ============================================================
-   MOVEMENTS
-============================================================ */
+function updateUserBar() {
+  const nameEl = document.getElementById("currentUserName");
+  const roleEl = document.getElementById("currentUserRole");
+  if (!currentUser) return;
+  if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username;
+  if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
+}
+
+function initTabs() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const viewId = btn.dataset.view;
+      showView(viewId);
+    });
+  });
+  showView("viewMovements");
+}
+
+function initCollapsibles() {
+  document.querySelectorAll(".collapsible-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      const targetId = header.getAttribute("data-target");
+      const body = document.getElementById(targetId);
+      if (!body) return;
+      const open = body.classList.contains("open");
+      document.querySelectorAll(".collapsible-body").forEach((b) => {
+        if (b.id === targetId) {
+          b.classList.toggle("open", !open);
+        }
+      });
+      const indicator = header.querySelector(".collapse-indicator");
+      if (indicator) indicator.textContent = open ? "▲" : "▼";
+    });
+  });
+}
+
+// MOVEMENTS
 function renderDriverSelect() {
   const select = document.getElementById("movementDriverSelect");
   if (!select) return;
+  const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
-  usersCache.forEach((u) => {
+  users.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
     opt.textContent = `${u.displayName} (${u.username})`;
@@ -256,17 +218,17 @@ function renderDriverSelect() {
 function renderMovementsList() {
   const container = document.getElementById("movementsList");
   if (!container) return;
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
 
-  if (movementsCache.length === 0) {
+  if (movements.length === 0) {
     container.innerHTML = `<div class="info-text">No movements yet.</div>`;
     return;
   }
 
   container.innerHTML = "";
-
-  movementsCache
+  movements
     .slice()
-    .sort((a, b) => b.createdAt - a.createdAt)
+    .reverse()
     .forEach((m) => {
       const div = document.createElement("div");
       div.className = "list-item";
@@ -351,7 +313,7 @@ function initMovements() {
 
   if (!form) return;
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!currentUser) return;
 
@@ -366,49 +328,44 @@ function initMovements() {
       return;
     }
 
-    const driver = usersCache.find((u) => u.username === driverUsername);
+    const users = getArray(STORAGE_KEYS.USERS);
+    const driver = users.find((u) => u.username === driverUsername);
     const driverName = driver ? driver.displayName : driverUsername;
+
+    const movements = getArray(STORAGE_KEYS.MOVEMENTS);
     const now = getGulfNow();
 
-    try {
-      await addDoc(colMovements, {
-        type,
-        carNumber,
-        plate,
-        driverUsername,
-        driverName,
-        notes,
-        createdBy: currentUser.username,
-        date: formatDateTime(now),
-        createdAt: now.getTime()
-      });
-      form.reset();
-      renderDriverSelect();
-      showMessage(successBox, "Movement saved.", "success");
-    } catch {
-      showMessage(errorBox, "Error saving movement.");
-    }
-  });
+    const movement = {
+      id: Date.now(),
+      type,
+      carNumber,
+      plate,
+      driverUsername,
+      driverName,
+      notes,
+      createdBy: currentUser.username,
+      date: formatDateTime(now),
+    };
 
-  const qMov = query(colMovements, orderBy("createdAt", "desc"));
-  onSnapshot(qMov, (snap) => {
-    movementsCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    movements.push(movement);
+    saveArray(STORAGE_KEYS.MOVEMENTS, movements);
     renderMovementsList();
-    updateStatsSummary();
+    form.reset();
+    renderDriverSelect();
+    showMessage(successBox, "Movement saved.", "success");
   });
 }
 
-async function editMovement(id) {
-  const m = movementsCache.find((x) => x.id === id);
+function editMovement(id) {
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  const m = movements.find((x) => x.id === id);
   if (!m) return;
-
   document.getElementById("movementType").value = m.type;
   document.getElementById("movementCarNumber").value = m.carNumber;
   document.getElementById("movementPlate").value = m.plate;
   document.getElementById("movementNotes").value = m.notes || "";
   document.getElementById("movementDriverSelect").value = m.driverUsername;
-
-  await deleteMovement(id, false);
+  deleteMovement(id, false);
   showView("viewMovements");
 }
 
@@ -430,26 +387,26 @@ function printMovement(m) {
   w.close();
 }
 
-async function deleteMovement(id, rerender = true) {
-  await deleteDoc(doc(colMovements, id));
+function deleteMovement(id, rerender = true) {
+  let movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  movements = movements.filter((m) => m.id !== id);
+  saveArray(STORAGE_KEYS.MOVEMENTS, movements);
   if (rerender) renderMovementsList();
 }
 
-/* ============================================================
-   MEMBERS
-============================================================ */
+// MEMBERS
 function renderMembersList() {
   const container = document.getElementById("membersList");
   if (!container) return;
+  const users = getArray(STORAGE_KEYS.USERS);
 
-  if (usersCache.length === 0) {
+  if (users.length === 0) {
     container.innerHTML = `<div class="info-text">No members.</div>`;
     return;
   }
 
   container.innerHTML = "";
-
-  usersCache.forEach((u) => {
+  users.forEach((u) => {
     const div = document.createElement("div");
     div.className = "list-item";
     div.id = `member-${u.username}`;
@@ -481,14 +438,15 @@ function renderMembersList() {
 function renderMessageTargets() {
   const select = document.getElementById("messageTarget");
   if (!select) return;
-
+  const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
+
   const optAll = document.createElement("option");
   optAll.value = "all";
   optAll.textContent = "All";
   select.appendChild(optAll);
 
-  usersCache.forEach((u) => {
+  users.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
     opt.textContent = `${u.displayName} (${u.username})`;
@@ -499,9 +457,9 @@ function renderMessageTargets() {
 function renderStatsUsers() {
   const select = document.getElementById("statsUserSelect");
   if (!select) return;
-
+  const users = getArray(STORAGE_KEYS.USERS);
   select.innerHTML = "";
-  usersCache.forEach((u) => {
+  users.forEach((u) => {
     const opt = document.createElement("option");
     opt.value = u.username;
     opt.textContent = `${u.displayName} (${u.username})`;
@@ -521,9 +479,8 @@ function initMembers() {
 
   if (!form) return;
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
-
     const username = document.getElementById("memberUsername").value.trim();
     const password = document.getElementById("memberPassword").value.trim();
     const displayName = document.getElementById("memberDisplayName").value.trim();
@@ -535,47 +492,38 @@ function initMembers() {
       return;
     }
 
-    if (usersCache.find((u) => u.username === username)) {
+    const users = getArray(STORAGE_KEYS.USERS);
+    if (users.find((u) => u.username === username)) {
       showMessage(errorBox, "Username already exists.");
       return;
     }
 
-    try {
-      await addDoc(colUsers, { username, password, displayName, phone, role });
-      form.reset();
-      showMessage(successBox, "Member saved.", "success");
-    } catch {
-      showMessage(errorBox, "Error saving member.");
-    }
-  });
-
-  const qUsers = query(colUsers, orderBy("username"));
-  onSnapshot(qUsers, (snap) => {
-    usersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    users.push({ username, password, displayName, phone, role });
+    saveArray(STORAGE_KEYS.USERS, users);
+    form.reset();
     renderMembersList();
     renderDriverSelect();
     renderMessageTargets();
     renderStatsUsers();
+    showMessage(successBox, "Member saved.", "success");
   });
 }
 
-/* ============================================================
-   MESSAGES
-============================================================ */
+// MESSAGES
 function renderMessagesList() {
   const container = document.getElementById("messagesList");
   if (!container) return;
+  const messages = getArray(STORAGE_KEYS.MESSAGES);
 
-  if (messagesCache.length === 0) {
+  if (messages.length === 0) {
     container.innerHTML = `<div class="info-text">No messages.</div>`;
     return;
   }
 
   container.innerHTML = "";
-
-  messagesCache
+  messages
     .slice()
-    .sort((a, b) => b.createdAt - a.createdAt)
+    .reverse()
     .forEach((msg) => {
       const div = document.createElement("div");
       div.className = "list-item";
@@ -583,7 +531,7 @@ function renderMessagesList() {
 
       const from = document.createElement("div");
       from.className = "message-from";
-      from.textContent = `From: ${msg.from}`;
+      from.textContent = msg.from;
 
       const text = document.createElement("div");
       text.className = "message-text";
@@ -612,7 +560,7 @@ function initMessages() {
 
   if (!form) return;
 
-  form.addEventListener("submit", async (e) => {
+  form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!currentUser) return;
 
@@ -624,47 +572,41 @@ function initMessages() {
       return;
     }
 
+    const users = getArray(STORAGE_KEYS.USERS);
     let toLabel = "All";
     if (target !== "all") {
-      const u = usersCache.find((x) => x.username === target);
+      const u = users.find((x) => x.username === target);
       toLabel = u ? `${u.displayName} (${u.username})` : target;
     }
 
+    const messages = getArray(STORAGE_KEYS.MESSAGES);
     const now = getGulfNow();
 
-    try {
-      await addDoc(colMessages, {
-        from: currentUser.displayName || currentUser.username,
-        to: target,
-        toLabel,
-        text,
-        date: formatDateTime(now),
-        createdAt: now.getTime()
-      });
-      form.reset();
-      showMessage(successBox, "Message sent.", "success");
-    } catch {
-      showMessage(errorBox, "Error sending message.");
-    }
-  });
+    messages.push({
+      id: Date.now(),
+      from: currentUser.displayName || currentUser.username,
+      to: target,
+      toLabel,
+      text,
+      date: formatDateTime(now),
+    });
 
-  const qMsg = query(colMessages, orderBy("createdAt", "desc"));
-  onSnapshot(qMsg, (snap) => {
-    messagesCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    saveArray(STORAGE_KEYS.MESSAGES, messages);
+    form.reset();
     renderMessagesList();
+    showMessage(successBox, "Message sent.", "success");
   });
 }
 
-/* ============================================================
-   STATISTICS
-============================================================ */
+// STATISTICS
 function updateStatsSummary() {
   const box = document.getElementById("statsSummaryBox");
   if (!box) return;
 
-  const total = movementsCache.length;
-  const received = movementsCache.filter((m) => m.type === "receive").length;
-  const delivered = movementsCache.filter((m) => m.type === "deliver").length;
+  const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+  const total = movements.length;
+  const received = movements.filter((m) => m.type === "receive").length;
+  const delivered = movements.filter((m) => m.type === "deliver").length;
 
   box.innerHTML = `
     <div class="info-text">Total movements: ${total}</div>
@@ -679,33 +621,38 @@ function initStatistics() {
 
   const formRange = document.getElementById("statsRangeForm");
   const rangeResult = document.getElementById("statsRangeResult");
-
   if (formRange) {
     formRange.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const fromDate = document.getElementById("statsFromDate").value;
       const toDate = document.getElementById("statsToDate").value;
+
       if (!fromDate || !toDate) {
         rangeResult.textContent = "Please select both dates.";
         return;
       }
+
       const fromTime = new Date(fromDate + "T00:00:00").getTime();
       const toTime = new Date(toDate + "T23:59:59").getTime();
-      const filtered = movementsCache.filter((m) => {
-        return m.createdAt >= fromTime && m.createdAt <= toTime;
+
+      const filtered = movements.filter((m) => {
+        const t = new Date(m.date.replace(" ", "T")).getTime();
+        return t >= fromTime && t <= toTime;
       });
+
       rangeResult.textContent = `Movements in range: ${filtered.length}`;
     });
   }
 
   const formUser = document.getElementById("statsUserForm");
   const userResult = document.getElementById("statsUserResult");
-
   if (formUser) {
     formUser.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const selected = document.getElementById("statsUserSelect").value;
-      const count = movementsCache.filter(
+      const count = movements.filter(
         (m) => m.createdBy === selected || m.driverUsername === selected
       ).length;
       userResult.textContent = `Movements related to this user: ${count}`;
@@ -714,16 +661,16 @@ function initStatistics() {
 
   const formCar = document.getElementById("statsCarForm");
   const carResult = document.getElementById("statsCarResult");
-
   if (formCar) {
     formCar.addEventListener("submit", (e) => {
       e.preventDefault();
+      const movements = getArray(STORAGE_KEYS.MOVEMENTS);
       const carNumber = document.getElementById("statsCarNumber").value.trim();
       if (!carNumber) {
         carResult.textContent = "Please enter car number.";
         return;
       }
-      const count = movementsCache.filter(
+      const count = movements.filter(
         (m) => m.carNumber.toLowerCase() === carNumber.toLowerCase()
       ).length;
       carResult.textContent = `Movements for this car: ${count}`;
@@ -731,16 +678,18 @@ function initStatistics() {
   }
 }
 
-/* ============================================================
-   SETTINGS
-============================================================ */
+// SETTINGS
 function initSettings() {
   const passForm = document.getElementById("changePasswordForm");
   const passError = document.getElementById("changePasswordError");
   const passSuccess = document.getElementById("changePasswordSuccess");
 
+  const phoneForm = document.getElementById("changePhoneForm");
+  const phoneError = document.getElementById("changePhoneError");
+  const phoneSuccess = document.getElementById("changePhoneSuccess");
+
   if (passForm) {
-    passForm.addEventListener("submit", async (e) => {
+    passForm.addEventListener("submit", (e) => {
       e.preventDefault();
       if (!currentUser) return;
 
@@ -760,35 +709,29 @@ function initSettings() {
         return;
       }
 
-      const userDoc = usersCache.find((u) => u.username === currentUser.username);
-      if (!userDoc) {
+      const users = getArray(STORAGE_KEYS.USERS);
+      const idx = users.findIndex((u) => u.username === currentUser.username);
+      if (idx === -1) {
         showMessage(passError, "User not found.");
         return;
       }
 
-      if (userDoc.password !== oldPassword) {
+      if (users[idx].password !== oldPassword) {
         showMessage(passError, "Current password is incorrect.");
         return;
       }
 
-      try {
-        await updateDoc(doc(colUsers, userDoc.id), { password: newPassword });
-        currentUser.password = newPassword;
-        saveSession(currentUser);
-        showMessage(passSuccess, "Password updated.", "success");
-        passForm.reset();
-      } catch {
-        showMessage(passError, "Error updating password.");
-      }
+      users[idx].password = newPassword;
+      saveArray(STORAGE_KEYS.USERS, users);
+      currentUser.password = newPassword;
+      saveSession(currentUser);
+      showMessage(passSuccess, "Password updated.", "success");
+      passForm.reset();
     });
   }
 
-  const phoneForm = document.getElementById("changePhoneForm");
-  const phoneError = document.getElementById("changePhoneError");
-  const phoneSuccess = document.getElementById("changePhoneSuccess");
-
   if (phoneForm) {
-    phoneForm.addEventListener("submit", async (e) => {
+    phoneForm.addEventListener("submit", (e) => {
       e.preventDefault();
       if (!currentUser) return;
 
@@ -798,28 +741,24 @@ function initSettings() {
         return;
       }
 
-      const userDoc = usersCache.find((u) => u.username === currentUser.username);
-      if (!userDoc) {
+      const users = getArray(STORAGE_KEYS.USERS);
+      const idx = users.findIndex((u) => u.username === currentUser.username);
+      if (idx === -1) {
         showMessage(phoneError, "User not found.");
         return;
       }
 
-      try {
-        await updateDoc(doc(colUsers, userDoc.id), { phone: newPhone });
-        currentUser.phone = newPhone;
-        saveSession(currentUser);
-        showMessage(phoneSuccess, "Phone updated.", "success");
-        phoneForm.reset();
-      } catch {
-        showMessage(phoneError, "Error updating phone.");
-      }
+      users[idx].phone = newPhone;
+      saveArray(STORAGE_KEYS.USERS, users);
+      currentUser.phone = newPhone;
+      saveSession(currentUser);
+      showMessage(phoneSuccess, "Phone updated.", "success");
+      phoneForm.reset();
     });
   }
 }
 
-/* ============================================================
-   GLOBAL SEARCH
-============================================================ */
+// GLOBAL SEARCH (يقفز للعنصر)
 function initGlobalSearch() {
   const overlay = document.getElementById("searchOverlay");
   const openBtn = document.getElementById("headerSearchBtn");
@@ -847,9 +786,13 @@ function initGlobalSearch() {
       return;
     }
 
+    const movements = getArray(STORAGE_KEYS.MOVEMENTS);
+    const users = getArray(STORAGE_KEYS.USERS);
+    const messages = getArray(STORAGE_KEYS.MESSAGES);
+
     const results = [];
 
-    movementsCache.forEach((m) => {
+    movements.forEach((m) => {
       const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
       if (text.includes(term)) {
         results.push({
@@ -860,7 +803,7 @@ function initGlobalSearch() {
       }
     });
 
-    usersCache.forEach((u) => {
+    users.forEach((u) => {
       const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
       if (text.includes(term)) {
         results.push({
@@ -871,7 +814,7 @@ function initGlobalSearch() {
       }
     });
 
-    messagesCache.forEach((msg) => {
+    messages.forEach((msg) => {
       const text = `${msg.text} ${msg.from} ${msg.toLabel}`.toLowerCase();
       if (text.includes(term)) {
         results.push({
@@ -884,51 +827,41 @@ function initGlobalSearch() {
 
     if (results.length === 0) {
       box.innerHTML = `<div class="search-result-item">No results.</div>`;
-      return;
-    }
-
-    box.innerHTML = "";
-    results.forEach((r) => {
-      const div = document.createElement("div");
-      div.className = "search-result-item";
-      div.textContent = r.label;
-
-      div.addEventListener("click", () => {
-        overlay.classList.remove("active");
-
-        if (r.type === "movement") {
-          showView("viewMovements");
-          setTimeout(() => {
-            const el = document.getElementById(`movement-${r.id}`);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, 50);
-        }
-
-        if (r.type === "member") {
-          showView("viewMembers");
-          setTimeout(() => {
-            const el = document.getElementById(`member-${r.id}`);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, 50);
-        }
-
-        if (r.type === "message") {
-          showView("viewMessages");
-          setTimeout(() => {
-            const el = document.getElementById(`message-${r.id}`);
-            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-          }, 50);
-        }
+    } else {
+      box.innerHTML = "";
+      results.forEach((r) => {
+        const div = document.createElement("div");
+        div.className = "search-result-item";
+        div.textContent = r.label;
+        div.addEventListener("click", () => {
+          overlay.classList.remove("active");
+          if (r.type === "movement") {
+            showView("viewMovements");
+            setTimeout(() => {
+              const el = document.getElementById(`movement-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "member") {
+            showView("viewMembers");
+            setTimeout(() => {
+              const el = document.getElementById(`member-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "message") {
+            showView("viewMessages");
+            setTimeout(() => {
+              const el = document.getElementById(`message-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          }
+        });
+        box.appendChild(div);
       });
-
-      box.appendChild(div);
-    });
+    }
   });
 }
 
-/* ============================================================
-   LOGOUT
-============================================================ */
+// LOGOUT
 function initLogout() {
   const logoutBtn = document.getElementById("logoutBtn");
   if (!logoutBtn) return;
@@ -939,22 +872,15 @@ function initLogout() {
   });
 }
 
-/* ============================================================
-   PWA REGISTRATION
-============================================================ */
+// PWA
 function registerServiceWorker() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .register("./service-worker.js", { scope: "./" })
-      .catch(() => {});
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
   }
 }
 
-/* ============================================================
-   MAIN ENTRY
-============================================================ */
-document.addEventListener("DOMContentLoaded", async () => {
-  await seedAdminUserIfNeeded();
+document.addEventListener("DOMContentLoaded", () => {
+  seedInitialData();
   registerServiceWorker();
   initLogin();
 });
