@@ -1,0 +1,22 @@
+{
+  "name": "Car Movement System",
+  "short_name": "CMS",
+  "lang": "en",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b3c6f",
+  "theme_color": "#0b3c6f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "al-masaood-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "al-masaood-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
