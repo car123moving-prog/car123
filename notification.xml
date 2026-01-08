@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<notification>
+    <visual>
+        <binding template="ToastGeneric">
+            <text>Car Movement System</text>
+            <text>System notifications will appear here</text>
+            <image placement="appLogoOverride" src="/al-masaood-logo.png"/>
+        </binding>
+    </visual>
+    <actions>
+        <action content="Open App" arguments="action=open" activationType="foreground"/>
+        <action content="Dismiss" arguments="action=dismiss" activationType="background"/>
+    </actions>
+</notification>
