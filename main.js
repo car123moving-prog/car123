@@ -1,20 +1,4 @@
-/* --- MAIN.JS — PART 1 START --- */
-
-/* ============================================================
-   Car Movement System — Version v1.1
-   Full English UI
-   Role-based permissions
-   Notes editing rules (Admin unlimited / User 24h)
-   Internal history tracking
-   Freeze accounts
-   No deletion anywhere
-   Messages: User → Admin only
-   Footer: © 2026 — Developed by MOHAMED SAAD
-   ============================================================ */
-
-/* -----------------------------
-   Firebase Initialization
------------------------------- */
+// main.js — English UI, roles, edit, toast, Realtime DB
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -43,20 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* -----------------------------
-   Global State
------------------------------- */
-
-let currentUser = null;              // Logged-in user
-let requirePasswordChange = false;   // Admin first login
-let movementsCache = [];             // All movements
-let usersCache = [];                 // All users
-let messagesCache = [];              // All messages
-
-/* -----------------------------
-   Utility: Hash Password
------------------------------- */
-
+// Helpers
 async function hashPassword(password) {
   try {
     const enc = new TextEncoder();
@@ -73,10 +44,6 @@ async function hashPassword(password) {
     return String(h >>> 0);
   }
 }
-
-/* -----------------------------
-   Utility: Gulf Time
------------------------------- */
 
 function getGulfNow() {
   const now = new Date();
@@ -96,9 +63,32 @@ function formatDateTime(dt) {
   return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
 }
 
-/* -----------------------------
-   Utility: Toast
------------------------------- */
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((s) => {
+    s.classList.toggle("active", s.id === id);
+  });
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach((v) => {
+    v.classList.toggle("active", v.id === id);
+  });
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === id);
+  });
+}
+
+function showMessage(el, msg, type = "error") {
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove("success-text", "error-text");
+  el.classList.add(type === "success" ? "success-text" : "error-text");
+  if (msg) {
+    setTimeout(() => {
+      el.textContent = "";
+    }, 2500);
+  }
+}
 
 function showToast(message) {
   let box = document.getElementById("toastBox");
@@ -138,52 +128,95 @@ function showToast(message) {
   }, 4000);
 }
 
-/* -----------------------------
-   Utility: Show Message
------------------------------- */
+// State
+let currentUser = null;
+let requirePasswordChange = false;
+let movementsCache = [];
+let usersCache = [];
+let messagesCache = [];
 
-function showMessage(el, msg, type = "error") {
-  if (!el) return;
-  el.textContent = msg;
-  el.classList.remove("success-text", "error-text");
-  el.classList.add(type === "success" ? "success-text" : "error-text");
-  if (msg) {
-    setTimeout(() => {
-      el.textContent = "";
-    }, 2500);
+// Firebase helpers
+async function ensureDefaultUsers() {
+  const snap = await get(ref(db, "users"));
+  if (!snap.exists()) {
+    const adminHash = await hashPassword("1234");
+    const userHash = await hashPassword("1234");
+    const updates = {};
+    updates["users/admin"] = {
+      username: "admin",
+      passwordHash: adminHash,
+      displayName: "Administrator",
+      phone: "",
+      role: "admin",
+      forceChangePassword: true
+    };
+    updates["users/user1"] = {
+      username: "user1",
+      passwordHash: userHash,
+      displayName: "User One",
+      phone: "",
+      role: "user",
+      forceChangePassword: false
+    };
+    await update(ref(db), updates);
   }
 }
 
-/* -----------------------------
-   Screen Switching
------------------------------- */
+async function loadUsers() {
+  const snap = await get(ref(db, "users"));
+  usersCache = [];
+  if (snap.exists()) {
+    const val = snap.val();
+    usersCache = Object.values(val);
+  }
+}
 
-function showScreen(id) {
-  document.querySelectorAll(".screen").forEach((s) => {
-    s.classList.toggle("active", s.id === id);
+function listenMovements() {
+  const movementsRef = ref(db, "movements");
+  onValue(movementsRef, (snapshot) => {
+    movementsCache = [];
+    if (snapshot.exists()) {
+      const val = snapshot.val();
+      movementsCache = Object.keys(val).map((key) => ({
+        id: key,
+        ...val[key]
+      }));
+    }
+    renderMovementsList();
+    updateStatsSummary();
   });
 }
 
-function showView(id) {
-  document.querySelectorAll(".view").forEach((v) => {
-    v.classList.toggle("active", v.id === id);
+function listenMessages() {
+  const messagesRef = ref(db, "messages");
+  onValue(messagesRef, (snapshot) => {
+    messagesCache = [];
+    if (snapshot.exists()) {
+      const val = snapshot.val();
+      messagesCache = Object.keys(val).map((key) => ({
+        id: key,
+        ...val[key]
+      }));
+    }
+    renderMessagesList();
   });
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.view === id);
+
+  onChildAdded(messagesRef, (snapshot) => {
+    const msg = snapshot.val();
+    if (!currentUser) return;
+    if (msg.fromUsername === currentUser.username) return;
+    showToast(`New message from ${msg.fromDisplayName || msg.fromUsername}`);
   });
 }
 
-/* -----------------------------
-   Session Handling
------------------------------- */
-
+// Session
 function saveSessionLocal(user) {
   const safe = {
     username: user.username,
     displayName: user.displayName,
     role: user.role,
     forceChangePassword: !!user.forceChangePassword,
-    frozen: !!user.frozen
+    phone: user.phone || ""
   };
   localStorage.setItem("cms_session", JSON.stringify(safe));
 }
@@ -202,166 +235,16 @@ function clearSessionLocal() {
   localStorage.removeItem("cms_session");
 }
 
-/* -----------------------------
-   Footer Injection
------------------------------- */
-
-function injectFooter() {
-  const footer = document.createElement("div");
-  footer.style.textAlign = "center";
-  footer.style.padding = "12px";
-  footer.style.fontSize = "13px";
-  footer.style.color = "#6b7280";
-  footer.style.marginTop = "40px";
-  footer.innerHTML = "© 2026 — Developed by <strong>MOHAMED SAAD</strong>";
-  document.body.appendChild(footer);
-}
-
-/* --- MAIN.JS — PART 1 END --- */
-
-/* --- MAIN.JS — PART 2 START --- */
-
-/* ============================================================
-   USERS LOADING + FREEZE SYSTEM
-   ============================================================ */
-
-/* -----------------------------
-   Load All Users
------------------------------- */
-
-async function loadUsers() {
-  const snap = await get(ref(db, "users"));
-  usersCache = [];
-  if (snap.exists()) {
-    const val = snap.val();
-    usersCache = Object.values(val);
-  }
-}
-
-/* -----------------------------
-   Ensure Default Users (Admin + User)
------------------------------- */
-
-async function ensureDefaultUsers() {
-  const snap = await get(ref(db, "users"));
-  if (!snap.exists()) {
-    const adminHash = await hashPassword("1234");
-    const userHash = await hashPassword("1234");
-
-    const updates = {};
-    updates["users/admin"] = {
-      username: "admin",
-      passwordHash: adminHash,
-      displayName: "Administrator",
-      phone: "",
-      role: "admin",
-      frozen: false,
-      forceChangePassword: true
-    };
-
-    updates["users/user1"] = {
-      username: "user1",
-      passwordHash: userHash,
-      displayName: "User One",
-      phone: "",
-      role: "user",
-      frozen: false,
-      forceChangePassword: false
-    };
-
-    await update(ref(db), updates);
-  }
-}
-
-/* ============================================================
-   MOVEMENTS LOADING
-   ============================================================ */
-
-function listenMovements() {
-  const movementsRef = ref(db, "movements");
-
-  onValue(movementsRef, (snapshot) => {
-    movementsCache = [];
-    if (snapshot.exists()) {
-      const val = snapshot.val();
-      movementsCache = Object.keys(val).map((key) => ({
-        id: key,
-        ...val[key]
-      }));
-    }
-
-    renderMovementsList();
-    updateStatsSummary();
-  });
-}
-
-/* ============================================================
-   MESSAGES LOADING
-   ============================================================ */
-
-function listenMessages() {
-  const messagesRef = ref(db, "messages");
-
-  onValue(messagesRef, (snapshot) => {
-    messagesCache = [];
-    if (snapshot.exists()) {
-      const val = snapshot.val();
-      messagesCache = Object.keys(val).map((key) => ({
-        id: key,
-        ...val[key]
-      }));
-    }
-
-    renderMessagesList();
-  });
-
-  /* Toast for new messages */
-  onChildAdded(messagesRef, (snapshot) => {
-    const msg = snapshot.val();
-    if (!currentUser) return;
-
-    /* Do not notify for own messages */
-    if (msg.fromUsername === currentUser.username) return;
-
-    /* User only receives messages from admin */
-    if (currentUser.role === "user" && msg.fromUsername !== "admin") return;
-
-    showToast(`New message from ${msg.fromDisplayName || msg.fromUsername}`);
-  });
-}
-
-/* ============================================================
-   ROLE SYSTEM + FREEZE SYSTEM
-   ============================================================ */
-
-/* -----------------------------
-   Update User Bar
------------------------------- */
-
 function updateUserBar() {
   const nameEl = document.getElementById("currentUserName");
   const roleEl = document.getElementById("currentUserRole");
-
   if (!currentUser) return;
-
-  nameEl.textContent = currentUser.displayName || currentUser.username;
-
-  if (currentUser.frozen) {
-    roleEl.textContent = "Frozen Account";
-    roleEl.style.color = "red";
-  } else {
-    roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
-    roleEl.style.color = "";
-  }
+  if (nameEl) nameEl.textContent = currentUser.displayName || currentUser.username;
+  if (roleEl) roleEl.textContent = currentUser.role === "admin" ? "Administrator" : "User";
 }
-
-/* -----------------------------
-   Apply Role Visibility
------------------------------- */
 
 function applyRoleVisibility() {
   const isAdmin = currentUser && currentUser.role === "admin";
-
   const membersTab = document.querySelector('.tab-btn[data-view="viewMembers"]');
   const statsTab = document.querySelector('.tab-btn[data-view="viewStatistics"]');
   const settingsTab = document.querySelector('.tab-btn[data-view="viewSettings"]');
@@ -371,19 +254,13 @@ function applyRoleVisibility() {
   if (settingsTab) settingsTab.style.display = isAdmin ? "" : "none";
 
   if (!isAdmin) {
-    if (
-      document.getElementById("viewMembers").classList.contains("active") ||
-      document.getElementById("viewStatistics").classList.contains("active") ||
-      document.getElementById("viewSettings").classList.contains("active")
-    ) {
+    if (document.getElementById("viewMembers").classList.contains("active") ||
+        document.getElementById("viewStatistics").classList.contains("active") ||
+        document.getElementById("viewSettings").classList.contains("active")) {
       showView("viewMovements");
     }
   }
 }
-
-/* -----------------------------
-   Disable Tabs Except Settings
------------------------------- */
 
 function disableTabsExceptSettings(disable) {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -395,10 +272,42 @@ function disableTabsExceptSettings(disable) {
   });
 }
 
-/* ============================================================
-   LOGIN SYSTEM + FREEZE CHECK
-   ============================================================ */
+// UI init
+function initTabs() {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!currentUser) return;
+      if (requirePasswordChange && btn.dataset.view !== "viewSettings") return;
+      showView(btn.dataset.view);
+    });
+  });
+  showView("viewMovements");
+}
 
+function initCollapsibles() {
+  document.querySelectorAll(".collapsible-header").forEach((h) => {
+    h.addEventListener("click", () => {
+      const target = h.getAttribute("data-target");
+      const body = document.getElementById(target);
+      if (!body) return;
+      const open = body.classList.contains("open");
+      document.querySelectorAll(".collapsible-body").forEach((b) => {
+        b.classList.remove("open");
+      });
+      if (!open) body.classList.add("open");
+      document.querySelectorAll(".collapse-indicator").forEach((ind) => {
+        ind.textContent = "▼";
+      });
+      const ind = h.querySelector(".collapse-indicator");
+      if (ind && !open) ind.textContent = "▲";
+    });
+  });
+
+  const addMovementBody = document.getElementById("addMovementBody");
+  if (addMovementBody) addMovementBody.classList.add("open");
+}
+
+// Login
 async function handleLogin() {
   const loginForm = document.getElementById("loginForm");
   const usernameInput = document.getElementById("loginUsername");
@@ -408,14 +317,6 @@ async function handleLogin() {
   const existing = getSessionLocal();
   if (existing) {
     currentUser = existing;
-
-    /* Frozen check */
-    if (currentUser.frozen) {
-      showMessage(loginError, "Your account is frozen. Contact the administrator.");
-      clearSessionLocal();
-      return;
-    }
-
     enterApp();
     return;
   }
@@ -424,10 +325,8 @@ async function handleLogin() {
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const username = usernameInput.value.trim();
     const password = passwordInput.value.trim();
-
     if (!username || !password) {
       showMessage(loginError, "Please enter username and password.");
       return;
@@ -441,13 +340,6 @@ async function handleLogin() {
       showMessage(loginError, "Invalid username or password.");
       return;
     }
-
-    /* Frozen check */
-    if (found.frozen) {
-      showMessage(loginError, "Your account is frozen. Contact the administrator.");
-      return;
-    }
-
     const hash = await hashPassword(password);
     if (found.passwordHash !== hash) {
       showMessage(loginError, "Invalid username or password.");
@@ -458,10 +350,9 @@ async function handleLogin() {
       username: found.username,
       displayName: found.displayName,
       role: found.role,
-      frozen: found.frozen,
-      forceChangePassword: !!found.forceChangePassword
+      forceChangePassword: !!found.forceChangePassword,
+      phone: found.phone || ""
     };
-
     saveSessionLocal(currentUser);
 
     if (found.role === "admin" && found.forceChangePassword) {
@@ -473,10 +364,6 @@ async function handleLogin() {
     enterApp();
   });
 }
-
-/* ============================================================
-   ENTER APP
-   ============================================================ */
 
 function enterApp() {
   showScreen("screenHome");
@@ -491,8 +378,6 @@ function enterApp() {
   initStatistics();
   initSettings();
   initGlobalSearch();
-  injectFooter();
-
   listenMovements();
   listenMessages();
 
@@ -507,563 +392,968 @@ function enterApp() {
   }
 }
 
-/* --- MAIN.JS — PART 2 END --- */
+function initLogout() {
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (!logoutBtn) return;
+  logoutBtn.addEventListener("click", () => {
+    clearSessionLocal();
+    currentUser = null;
+    showScreen("screenLogin");
+  });
+}
 
-/* --- MAIN.JS — PART 3 START --- */
+// Movements
 
-/* ============================================================
-   MOVEMENTS — ADD, EDIT NOTES, HISTORY, ROLE FILTERING
-   ============================================================ */
+function renderDriverSelect() {
+  const select = document.getElementById("movementDriverSelect");
+  const editSelect = document.getElementById("editMovementDriverSelect");
+  if (select) select.innerHTML = "";
+  if (editSelect) editSelect.innerHTML = "";
+  usersCache.forEach((u) => {
+    const opt = document.createElement("option");
+    opt.value = u.username;
+    opt.textContent = `${u.displayName} (${u.username})`;
+    if (select) select.appendChild(opt.cloneNode(true));
+    if (editSelect) editSelect.appendChild(opt);
+  });
+}
 
-/* -----------------------------
-   Initialize Movements Section
------------------------------- */
+// helper: can current user see this movement?
+function canSeeMovement(m) {
+  if (!currentUser) return false;
+  if (currentUser.role === "admin") return true;
+  const u = currentUser.username;
+  return (
+    m.createdBy === u ||
+    m.driverUsername === u ||
+    m.assignedTo === u
+  );
+}
 
-function initMovements() {
-  const form = document.getElementById("movementForm");
-  const errorEl = document.getElementById("movementError");
+// helper: can current user edit notes of this movement?
+function canEditNotes(m) {
+  if (!currentUser) return false;
+  if (currentUser.role === "admin") return true;
 
-  if (!form) return;
+  const u = currentUser.username;
+  const related =
+    m.createdBy === u ||
+    m.driverUsername === u ||
+    m.assignedTo === u;
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  if (!related) return false;
 
-    const driver = document.getElementById("movementDriver").value.trim();
-    const plate = document.getElementById("movementPlate").value.trim();
-    const destination = document.getElementById("movementDestination").value.trim();
-    const notes = document.getElementById("movementNotes").value.trim();
+  const lastTime = m.notesUpdatedAt || m.createdAt || 0;
+  const now = Date.now();
+  const diff = now - lastTime;
+  const limit = 24 * 60 * 60 * 1000; // 24 hours
+  return diff <= limit;
+}
 
-    if (!driver || !plate || !destination) {
-      showMessage(errorEl, "Please fill all required fields.");
+// notes modal state
+let notesModalEl = null;
+let notesModalTextarea = null;
+let notesModalError = null;
+let notesModalSaveBtn = null;
+let notesModalCloseBtn = null;
+let notesModalMovementId = null;
+
+function ensureNotesModal() {
+  if (notesModalEl) return;
+
+  notesModalEl = document.createElement("div");
+  notesModalEl.id = "editNotesModal";
+  notesModalEl.style.position = "fixed";
+  notesModalEl.style.top = "0";
+  notesModalEl.style.left = "0";
+  notesModalEl.style.width = "100%";
+  notesModalEl.style.height = "100%";
+  notesModalEl.style.background = "rgba(0,0,0,0.4)";
+  notesModalEl.style.display = "none";
+  notesModalEl.style.alignItems = "center";
+  notesModalEl.style.justifyContent = "center";
+  notesModalEl.style.zIndex = "99999";
+
+  const inner = document.createElement("div");
+  inner.style.background = "#fff";
+  inner.style.padding = "20px";
+  inner.style.borderRadius = "10px";
+  inner.style.width = "90%";
+  inner.style.maxWidth = "500px";
+  inner.style.boxShadow = "0 8px 24px rgba(0,0,0,0.25)";
+  inner.style.display = "flex";
+  inner.style.flexDirection = "column";
+  inner.style.gap = "10px";
+
+  const title = document.createElement("div");
+  title.textContent = "Edit Notes";
+  title.style.fontWeight = "600";
+  title.style.marginBottom = "5px";
+
+  notesModalTextarea = document.createElement("textarea");
+  notesModalTextarea.style.width = "100%";
+  notesModalTextarea.style.minHeight = "120px";
+  notesModalTextarea.style.padding = "8px";
+  notesModalTextarea.style.borderRadius = "6px";
+  notesModalTextarea.style.border = "1px solid #ccc";
+  notesModalTextarea.style.fontFamily = "inherit";
+  notesModalTextarea.style.fontSize = "14px";
+
+  notesModalError = document.createElement("div");
+  notesModalError.style.color = "#b00020";
+  notesModalError.style.fontSize = "13px";
+  notesModalError.textContent = "";
+
+  const actionsRow = document.createElement("div");
+  actionsRow.style.display = "flex";
+  actionsRow.style.justifyContent = "flex-end";
+  actionsRow.style.gap = "10px";
+  actionsRow.style.marginTop = "10px";
+
+  notesModalCloseBtn = document.createElement("button");
+  notesModalCloseBtn.textContent = "Cancel";
+  notesModalCloseBtn.className = "action-btn";
+  notesModalCloseBtn.addEventListener("click", () => {
+    notesModalEl.style.display = "none";
+    notesModalMovementId = null;
+    notesModalTextarea.value = "";
+    notesModalError.textContent = "";
+  });
+
+  notesModalSaveBtn = document.createElement("button");
+  notesModalSaveBtn.textContent = "Save";
+  notesModalSaveBtn.className = "action-btn";
+  notesModalSaveBtn.style.background = "#0b3c6f";
+  notesModalSaveBtn.style.color = "#fff";
+  notesModalSaveBtn.addEventListener("click", async () => {
+    if (!notesModalMovementId || !currentUser) return;
+    const newNotes = notesModalTextarea.value.trim();
+    if (!newNotes) {
+      notesModalError.textContent = "Notes cannot be empty.";
+      return;
+    }
+    const existing = movementsCache.find((m) => m.id === notesModalMovementId);
+    if (!existing) {
+      notesModalError.textContent = "Movement not found.";
+      return;
+    }
+    if (!canEditNotes(existing)) {
+      notesModalError.textContent = "You are not allowed to edit these notes.";
       return;
     }
 
     const now = getGulfNow();
-    const movementId = push(ref(db, "movements")).key;
+    const history = Array.isArray(existing.notesHistory)
+      ? existing.notesHistory.slice()
+      : [];
 
-    const movementData = {
-      id: movementId,
-      driver,
-      plate,
-      destination,
-      notes,
-      createdAt: formatDateTime(now),
-      createdBy: currentUser.username,
-      createdByName: currentUser.displayName,
-      history: []  // internal history
+    history.push({
+      text: newNotes,
+      by: currentUser.displayName || currentUser.username,
+      at: formatDateTime(now)
+    });
+
+    const updated = {
+      ...existing,
+      notes: newNotes,
+      notesHistory: history,
+      notesUpdatedAt: Date.now(),
+      notesUpdatedBy: currentUser.username
     };
 
-    await set(ref(db, "movements/" + movementId), movementData);
-
-    form.reset();
-    showToast("Movement added successfully.");
+    await set(ref(db, `movements/${existing.id}`), updated);
+    notesModalEl.style.display = "none";
+    notesModalMovementId = null;
+    notesModalTextarea.value = "";
+    notesModalError.textContent = "";
+    showToast("Notes updated.");
   });
+
+  actionsRow.appendChild(notesModalCloseBtn);
+  actionsRow.appendChild(notesModalSaveBtn);
+
+  inner.appendChild(title);
+  inner.appendChild(notesModalTextarea);
+  inner.appendChild(notesModalError);
+  inner.appendChild(actionsRow);
+
+  notesModalEl.appendChild(inner);
+  document.body.appendChild(notesModalEl);
 }
 
-/* ============================================================
-   RENDER MOVEMENTS LIST
-   ============================================================ */
+function openEditNotesPopup(m) {
+  if (!currentUser) return;
+  if (!canEditNotes(m)) {
+    showToast("You are not allowed to edit these notes.");
+    return;
+  }
+  ensureNotesModal();
+  notesModalMovementId = m.id;
+  notesModalTextarea.value = m.notes || "";
+  notesModalError.textContent = "";
+  notesModalEl.style.display = "flex";
+}
+
+function buildMovementItem(m) {
+  const div = document.createElement("div");
+  div.className = "list-item";
+  div.id = `movement-${m.id}`;
+
+  const header = document.createElement("div");
+  header.className = "list-item-header";
+
+  const left = document.createElement("div");
+  const badge = document.createElement("span");
+  badge.className = "badge " + m.type;
+  badge.textContent = m.type === "receive" ? "RECEIVE" : "DELIVER";
+
+  const title = document.createElement("span");
+  title.style.marginLeft = "8px";
+  title.textContent = `Car ${m.carNumber} - Plate ${m.plate}`;
+
+  left.appendChild(badge);
+  left.appendChild(title);
+
+  const right = document.createElement("div");
+  right.className = "list-item-meta";
+  right.textContent = m.date || "";
+
+  header.appendChild(left);
+  header.appendChild(right);
+
+  const meta = document.createElement("div");
+  meta.className = "list-item-meta";
+  const driverLabel = m.driverName || m.driverUsername;
+  const createdByLabel = m.createdByDisplayName || m.createdBy;
+  const assignedToLabel = m.assignedTo
+    ? ` | Assigned to: ${m.assignedTo}`
+    : "";
+  meta.textContent = `Driver: ${driverLabel} | By: ${createdByLabel}${assignedToLabel}`;
+
+  const notes = document.createElement("div");
+  notes.className = "message-text";
+  notes.textContent = m.notes || "-";
+
+  // Edit Notes button under notes (choice A)
+  const notesActions = document.createElement("div");
+  notesActions.style.marginTop = "6px";
+  if (currentUser && canEditNotes(m)) {
+    const btnEditNotes = document.createElement("button");
+    btnEditNotes.className = "action-btn";
+    btnEditNotes.textContent = "Edit Notes";
+    btnEditNotes.addEventListener("click", () => openEditNotesPopup(m));
+    notesActions.appendChild(btnEditNotes);
+  }
+
+  // History block
+  const historyBlock = document.createElement("div");
+  historyBlock.className = "list-item-meta";
+  historyBlock.style.marginTop = "6px";
+  if (Array.isArray(m.notesHistory) && m.notesHistory.length > 0) {
+    const titleHist = document.createElement("div");
+    titleHist.textContent = "Notes history:";
+    titleHist.style.fontWeight = "500";
+    titleHist.style.marginBottom = "2px";
+
+    const list = document.createElement("ul");
+    list.style.paddingLeft = "18px";
+    list.style.margin = "0";
+
+    m.notesHistory.forEach((h) => {
+      const li = document.createElement("li");
+      li.style.fontSize = "12px";
+      li.textContent = `${h.at} — ${h.by}: ${h.text}`;
+      list.appendChild(li);
+    });
+
+    historyBlock.appendChild(titleHist);
+    historyBlock.appendChild(list);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "list-item-actions";
+
+  if (currentUser && currentUser.role === "admin") {
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "action-btn";
+    btnEdit.textContent = "Edit";
+    btnEdit.addEventListener("click", () => openEditMovementModal(m));
+    actions.appendChild(btnEdit);
+  }
+
+  const btnShare = document.createElement("button");
+  btnShare.className = "action-btn";
+  btnShare.textContent = "Share";
+  btnShare.addEventListener("click", () => shareMovement(m));
+
+  const btnPrint = document.createElement("button");
+  btnPrint.className = "action-btn";
+  btnPrint.textContent = "Print";
+  btnPrint.addEventListener("click", () => printMovement(m));
+
+  actions.appendChild(btnShare);
+  actions.appendChild(btnPrint);
+
+  // Delete removed completely (no soft/hard delete)
+
+  div.appendChild(header);
+  div.appendChild(meta);
+  div.appendChild(notes);
+  div.appendChild(notesActions);
+  if (historyBlock.childNodes.length > 0) {
+    div.appendChild(historyBlock);
+  }
+  div.appendChild(actions);
+
+  return div;
+}
 
 function renderMovementsList() {
   const container = document.getElementById("movementsList");
   if (!container) return;
-
+  if (!movementsCache || movementsCache.length === 0) {
+    container.innerHTML = `<div class="info-text">No movements yet.</div>`;
+    return;
+  }
   container.innerHTML = "";
 
-  let list = [];
+  let list = movementsCache.slice();
 
-  if (currentUser.role === "admin") {
-    list = movementsCache;
-  } else {
-    list = movementsCache.filter(
-      (m) => m.createdBy === currentUser.username
-    );
+  if (currentUser && currentUser.role !== "admin") {
+    list = list.filter((m) => canSeeMovement(m));
   }
 
-  list.sort((a, b) => {
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-
-  list.forEach((m) => {
-    const card = document.createElement("div");
-    card.className = "movement-card";
-
-    const hasEdits = m.history && m.history.length > 0;
-
-    let notesSection = `
-      <div class="movement-notes">
-        <strong>Notes:</strong> ${m.notes || ""}
-      </div>
-    `;
-
-    if (hasEdits) {
-      const lastEdit = m.history[m.history.length - 1];
-      notesSection = `
-        <div class="movement-notes">
-          <strong>Notes (edited):</strong><br>
-          <div class="edit-block">
-            <div><strong>Original:</strong> ${lastEdit.original}</div>
-            <div><strong>Updated:</strong> ${lastEdit.updated}</div>
-            <div><strong>Edited by:</strong> ${lastEdit.editedByName}</div>
-            <div><strong>Edited at:</strong> ${lastEdit.editedAt}</div>
-          </div>
-          <div class="history-flag">This record contains edit history</div>
-        </div>
-      `;
-    }
-
-    const canEdit = canEditMovementNotes(m);
-
-    card.innerHTML = `
-      <div class="movement-header">
-        <div><strong>Driver:</strong> ${m.driver}</div>
-        <div><strong>Plate:</strong> ${m.plate}</div>
-      </div>
-
-      <div><strong>Destination:</strong> ${m.destination}</div>
-      <div><strong>Created at:</strong> ${m.createdAt}</div>
-      <div><strong>Created by:</strong> ${m.createdByName}</div>
-
-      ${notesSection}
-
-      ${
-        canEdit
-          ? `<button class="edit-btn" onclick="openEditNotes('${m.id}')">Edit Notes</button>`
-          : ""
-      }
-    `;
-
-    container.appendChild(card);
-  });
+  list
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .reverse()
+    .forEach((m) => container.appendChild(buildMovementItem(m)));
 }
 
-/* ============================================================
-   CHECK EDIT PERMISSION
-   ============================================================ */
+function initMovements() {
+  renderDriverSelect();
+  ensureNotesModal();
 
-function canEditMovementNotes(m) {
-  if (!currentUser) return false;
-
-  if (currentUser.role === "admin") return true;
-
-  if (m.createdBy !== currentUser.username) return false;
-
-  const createdTime = new Date(m.createdAt).getTime();
-  const now = getGulfNow().getTime();
-  const diffHours = (now - createdTime) / (1000 * 60 * 60);
-
-  return diffHours <= 24;
-}
-
-/* ============================================================
-   OPEN EDIT NOTES POPUP
-   ============================================================ */
-
-function openEditNotes(id) {
-  const m = movementsCache.find((x) => x.id === id);
-  if (!m) return;
-
-  const popup = document.getElementById("editNotesPopup");
-  const textarea = document.getElementById("editNotesText");
-  const saveBtn = document.getElementById("editNotesSave");
-
-  textarea.value = m.notes || "";
-  popup.style.display = "flex";
-
-  saveBtn.onclick = () => saveEditedNotes(id);
-}
-
-/* ============================================================
-   SAVE EDITED NOTES
-   ============================================================ */
-
-async function saveEditedNotes(id) {
-  const m = movementsCache.find((x) => x.id === id);
-  if (!m) return;
-
-  const newNotes = document.getElementById("editNotesText").value.trim();
-  const popup = document.getElementById("editNotesPopup");
-
-  const now = getGulfNow();
-
-  const historyEntry = {
-    original: m.notes || "",
-    updated: newNotes,
-    editedBy: currentUser.username,
-    editedByName: currentUser.displayName,
-    editedAt: formatDateTime(now)
-  };
-
-  const updatedMovement = {
-    ...m,
-    notes: newNotes,
-    history: [...(m.history || []), historyEntry]
-  };
-
-  await update(ref(db, "movements/" + id), updatedMovement);
-
-  popup.style.display = "none";
-  showToast("Notes updated successfully.");
-}
-
-/* ============================================================
-   CLOSE EDIT POPUP
-   ============================================================ */
-
-function closeEditNotesPopup() {
-  document.getElementById("editNotesPopup").style.display = "none";
-}
-
-/* --- MAIN.JS — PART 3 END --- */
-
-/* --- MAIN.JS — PART 4 START --- */
-
-/* ============================================================
-   MESSAGES — SEND, RECEIVE, ROLE FILTERING
-   ============================================================ */
-
-/* -----------------------------
-   Initialize Messages Section
------------------------------- */
-
-function initMessages() {
-  const form = document.getElementById("messageForm");
-  const errorEl = document.getElementById("messageError");
-
+  const form = document.getElementById("addMovementForm");
+  const errorBox = document.getElementById("addMovementError");
+  const successBox = document.getElementById("addMovementSuccess");
   if (!form) return;
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
-    const text = document.getElementById("messageText").value.trim();
-    const target = document.getElementById("messageTarget").value;
-
-    if (!text) {
-      showMessage(errorEl, "Message cannot be empty.");
+    if (!currentUser) return;
+    if (requirePasswordChange) {
+      showMessage(errorBox, "You must change your password first (Settings).");
       return;
     }
 
-    const now = getGulfNow();
-    const msgId = push(ref(db, "messages")).key;
+    const type = document.getElementById("movementType").value;
+    const carNumber = document.getElementById("movementCarNumber").value.trim();
+    const plate = document.getElementById("movementPlate").value.trim();
+    const driverUsername = document.getElementById("movementDriverSelect").value;
+    const notes = document.getElementById("movementNotes").value.trim();
 
-    let toUsername = "admin";
-    let toDisplayName = "Administrator";
-
-    if (currentUser.role === "admin") {
-      if (target === "all") {
-        toUsername = "all";
-        toDisplayName = "All Users";
-      } else {
-        const user = usersCache.find((u) => u.username === target);
-        if (user) {
-          toUsername = user.username;
-          toDisplayName = user.displayName;
-        }
-      }
+    if (!carNumber || !plate || !driverUsername) {
+      showMessage(errorBox, "Please fill required fields.");
+      return;
     }
 
-    const msgData = {
-      id: msgId,
-      text,
-      fromUsername: currentUser.username,
-      fromDisplayName: currentUser.displayName,
-      toUsername,
-      toDisplayName,
-      createdAt: formatDateTime(now)
+    const driver = usersCache.find((u) => u.username === driverUsername);
+    const now = getGulfNow();
+    const createdAt = Date.now();
+
+    const history = [];
+    if (notes) {
+      history.push({
+        text: notes,
+        by: currentUser.displayName || currentUser.username,
+        at: formatDateTime(now)
+      });
+    }
+
+    const movement = {
+      type,
+      carNumber,
+      plate,
+      driverUsername,
+      driverName: driver ? driver.displayName : driverUsername,
+      notes,
+      createdBy: currentUser.username,
+      createdByDisplayName: currentUser.displayName,
+      date: formatDateTime(now),
+      createdAt,
+      assignedTo: driverUsername, // initial assignment = driver
+      notesHistory: history,
+      notesUpdatedAt: createdAt,
+      notesUpdatedBy: currentUser.username
     };
 
-    await set(ref(db, "messages/" + msgId), msgData);
-
-    document.getElementById("messageText").value = "";
-    showToast("Message sent.");
+    const newRef = push(ref(db, "movements"));
+    await set(newRef, movement);
+    form.reset();
+    showMessage(successBox, "Movement saved.", "success");
   });
 
-  updateMessageTargets();
+  initEditMovementModal();
 }
 
-/* -----------------------------
-   Update Message Targets (Admin Only)
------------------------------- */
+function openEditMovementModal(m) {
+  const modal = document.getElementById("editMovementModal");
+  if (!modal) return;
+  document.getElementById("editMovementId").value = m.id;
+  document.getElementById("editMovementType").value = m.type;
+  document.getElementById("editMovementCarNumber").value = m.carNumber;
+  document.getElementById("editMovementPlate").value = m.plate;
+  document.getElementById("editMovementDriverSelect").value = m.driverUsername;
+  document.getElementById("editMovementNotes").value = m.notes || "";
+  modal.classList.add("active");
+}
 
-function updateMessageTargets() {
-  const select = document.getElementById("messageTarget");
-  if (!select) return;
+function initEditMovementModal() {
+  const modal = document.getElementById("editMovementModal");
+  const closeBtn = document.getElementById("closeEditMovementBtn");
+  const form = document.getElementById("editMovementForm");
+  const errorBox = document.getElementById("editMovementError");
+  const successBox = document.getElementById("editMovementSuccess");
+  if (!modal || !closeBtn || !form) return;
 
-  if (currentUser.role === "admin") {
-    select.innerHTML = `<option value="all">All Users</option>`;
-    usersCache
-      .filter((u) => u.role === "user")
-      .forEach((u) => {
-        const opt = document.createElement("option");
-        opt.value = u.username;
-        opt.textContent = u.displayName;
-        select.appendChild(opt);
+  closeBtn.addEventListener("click", () => {
+    modal.classList.remove("active");
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser || currentUser.role !== "admin") return;
+
+    const id = document.getElementById("editMovementId").value;
+    const type = document.getElementById("editMovementType").value;
+    const carNumber = document.getElementById("editMovementCarNumber").value.trim();
+    const plate = document.getElementById("editMovementPlate").value.trim();
+    const driverUsername = document.getElementById("editMovementDriverSelect").value;
+    const notes = document.getElementById("editMovementNotes").value.trim();
+
+    if (!carNumber || !plate || !driverUsername) {
+      showMessage(errorBox, "Please fill required fields.");
+      return;
+    }
+
+    const driver = usersCache.find((u) => u.username === driverUsername);
+    const existing = movementsCache.find((m) => m.id === id);
+    if (!existing) {
+      showMessage(errorBox, "Movement not found.");
+      return;
+    }
+
+    // preserve notes history and notesUpdatedAt if notes didn't change
+    let history = Array.isArray(existing.notesHistory)
+      ? existing.notesHistory.slice()
+      : [];
+    let notesUpdatedAt = existing.notesUpdatedAt || existing.createdAt || Date.now();
+    let notesUpdatedBy = existing.notesUpdatedBy || existing.createdBy;
+
+    if (notes !== (existing.notes || "")) {
+      const now = getGulfNow();
+      history.push({
+        text: notes,
+        by: currentUser.displayName || currentUser.username,
+        at: formatDateTime(now)
       });
-  } else {
-    select.innerHTML = `<option value="admin">Administrator</option>`;
-  }
-}
+      notesUpdatedAt = Date.now();
+      notesUpdatedBy = currentUser.username;
+    }
 
-/* ============================================================
-   RENDER MESSAGES LIST
-   ============================================================ */
+    const updated = {
+      ...existing,
+      type,
+      carNumber,
+      plate,
+      driverUsername,
+      driverName: driver ? driver.displayName : driverUsername,
+      notes,
+      assignedTo: existing.assignedTo || driverUsername,
+      notesHistory: history,
+      notesUpdatedAt,
+      notesUpdatedBy
+    };
 
-function renderMessagesList() {
-  const container = document.getElementById("messagesList");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  let list = [];
-
-  if (currentUser.role === "admin") {
-    list = messagesCache;
-  } else {
-    list = messagesCache.filter(
-      (m) =>
-        m.fromUsername === currentUser.username ||
-        m.toUsername === currentUser.username ||
-        m.toUsername === "admin"
-    );
-  }
-
-  list.sort((a, b) => {
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
-
-  list.forEach((m) => {
-    const card = document.createElement("div");
-    card.className = "message-card";
-
-    card.innerHTML = `
-      <div class="message-header">
-        <strong>From:</strong> ${m.fromDisplayName}  
-        <br>
-        <strong>To:</strong> ${m.toDisplayName}
-      </div>
-
-      <div class="message-body">${m.text}</div>
-
-      <div class="message-footer">
-        <strong>Sent at:</strong> ${m.createdAt}
-      </div>
-    `;
-
-    container.appendChild(card);
+    await set(ref(db, `movements/${id}`), updated);
+    showMessage(successBox, "Movement updated.", "success");
+    setTimeout(() => {
+      modal.classList.remove("active");
+      form.reset();
+    }, 800);
   });
 }
 
-/* --- MAIN.JS — PART 4 END --- */
-
-/* --- MAIN.JS — PART 5 START --- */
-
-/* ============================================================
-   MEMBERS — LIST, FREEZE, UPDATE
-   ============================================================ */
-
-function initMembers() {
-  if (currentUser.role !== "admin") return;
-
-  renderMembersList();
+function shareMovement(m) {
+  const text = `Movement: ${m.type.toUpperCase()} | Car ${m.carNumber} | Plate ${m.plate} | Driver ${m.driverName} | Date ${m.date} | Notes: ${m.notes || "-"}`;
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    alert(text);
+  }
 }
 
+function printMovement(m) {
+  const text = `Movement
+Type: ${m.type}
+Car: ${m.carNumber}
+Plate: ${m.plate}
+Driver: ${m.driverName}
+By: ${m.createdByDisplayName || m.createdBy}
+Date: ${m.date}
+Notes: ${m.notes || "-"}`;
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`<pre>${text}</pre>`);
+  w.print();
+  w.close();
+}
+
+// Members
 function renderMembersList() {
   const container = document.getElementById("membersList");
   if (!container) return;
-
+  if (!usersCache || usersCache.length === 0) {
+    container.innerHTML = `<div class="info-text">No members.</div>`;
+    return;
+  }
   container.innerHTML = "";
-
-  usersCache
-    .sort((a, b) => a.username.localeCompare(b.username))
-    .forEach((u) => {
-      const card = document.createElement("div");
-      card.className = "member-card";
-
-      const frozenLabel = u.frozen
-        ? `<span class="frozen-label">(Frozen)</span>`
-        : "";
-
-      card.innerHTML = `
-        <div class="member-header">
-          <strong>${u.displayName}</strong> ${frozenLabel}
-        </div>
-
-        <div><strong>Username:</strong> ${u.username}</div>
-        <div><strong>Role:</strong> ${u.role}</div>
-        <div><strong>Phone:</strong> ${u.phone || "-"}</div>
-
-        <button class="freeze-btn" onclick="toggleFreeze('${u.username}', ${u.frozen})">
-          ${u.frozen ? "Unfreeze" : "Freeze"}
-        </button>
-      `;
-
-      container.appendChild(card);
-    });
-}
-
-/* -----------------------------
-   Freeze / Unfreeze User
------------------------------- */
-
-async function toggleFreeze(username, isFrozen) {
-  const user = usersCache.find((u) => u.username === username);
-  if (!user) return;
-
-  await update(ref(db, "users/" + username), {
-    frozen: !isFrozen
+  usersCache.forEach((u) => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.id = `member-${u.username}`;
+    div.innerHTML = `
+      <div class="list-item-header">
+        <div>${u.displayName} (${u.username})</div>
+        <div class="list-item-meta">${u.role === "admin" ? "Admin" : "User"}</div>
+      </div>
+      <div class="list-item-meta">Phone: ${u.phone || "-"}</div>
+    `;
+    container.appendChild(div);
   });
-
-  showToast(isFrozen ? "User unfrozen." : "User frozen.");
 }
 
-/* ============================================================
-   SETTINGS — CHANGE PASSWORD, UPDATE PHONE
-   ============================================================ */
+function renderMessageTargets() {
+  const select = document.getElementById("messageTarget");
+  const statsUserSelect = document.getElementById("statsUserSelect");
+  if (select) {
+    select.innerHTML = "";
+    const optAll = document.createElement("option");
+    optAll.value = "all";
+    optAll.textContent = "All";
+    select.appendChild(optAll);
+  }
+  if (statsUserSelect) {
+    statsUserSelect.innerHTML = "";
+  }
+  usersCache.forEach((u) => {
+    if (select) {
+      const opt = document.createElement("option");
+      opt.value = u.username;
+      opt.textContent = `${u.displayName} (${u.username})`;
+      select.appendChild(opt);
+    }
+    if (statsUserSelect) {
+      const opt2 = document.createElement("option");
+      opt2.value = u.username;
+      opt2.textContent = `${u.displayName} (${u.username})`;
+      statsUserSelect.appendChild(opt2);
+    }
+  });
+}
 
-function initSettings() {
-  const form = document.getElementById("settingsForm");
-  const errorEl = document.getElementById("settingsError");
-
+function initMembers() {
+  const form = document.getElementById("addMemberForm");
+  const errorBox = document.getElementById("addMemberError");
+  const successBox = document.getElementById("addMemberSuccess");
   if (!form) return;
+
+  renderMembersList();
+  renderDriverSelect();
+  renderMessageTargets();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-
-    const phone = document.getElementById("settingsPhone").value.trim();
-    const oldPass = document.getElementById("settingsOldPass").value.trim();
-    const newPass = document.getElementById("settingsNewPass").value.trim();
-
-    const user = usersCache.find((u) => u.username === currentUser.username);
-    if (!user) {
-      showMessage(errorEl, "User not found.");
+    if (!currentUser || currentUser.role !== "admin") {
+      showMessage(errorBox, "Only admin can add members.");
+      return;
+    }
+    if (requirePasswordChange) {
+      showMessage(errorBox, "You must change your password first (Settings).");
       return;
     }
 
-    if (oldPass || newPass) {
-      if (!oldPass || !newPass) {
-        showMessage(errorEl, "Enter old and new password.");
-        return;
-      }
+    const username = document.getElementById("memberUsername").value.trim();
+    const password = document.getElementById("memberPassword").value.trim();
+    const displayName = document.getElementById("memberDisplayName").value.trim();
+    const phone = document.getElementById("memberPhone").value.trim();
+    const role = document.getElementById("memberRole").value;
 
-      const oldHash = await hashPassword(oldPass);
-      if (oldHash !== user.passwordHash) {
-        showMessage(errorEl, "Old password incorrect.");
-        return;
-      }
-
-      const newHash = await hashPassword(newPass);
-
-      await update(ref(db, "users/" + user.username), {
-        passwordHash: newHash,
-        phone,
-        forceChangePassword: false
-      });
-
-      currentUser.forceChangePassword = false;
-      saveSessionLocal(currentUser);
-
-      showToast("Password updated.");
-    } else {
-      await update(ref(db, "users/" + user.username), {
-        phone
-      });
-
-      showToast("Phone updated.");
+    if (!username || !password || !displayName) {
+      showMessage(errorBox, "Please fill required fields.");
+      return;
     }
 
-    disableTabsExceptSettings(false);
+    if (usersCache.find((u) => u.username === username)) {
+      showMessage(errorBox, "Username already exists.");
+      return;
+    }
+
+    const passwordHash = await hashPassword(password);
+    const userObj = {
+      username,
+      passwordHash,
+      displayName,
+      phone,
+      role,
+      forceChangePassword: role === "admin"
+    };
+
+    await set(ref(db, `users/${username}`), userObj);
+    await loadUsers();
+    renderMembersList();
+    renderDriverSelect();
+    renderMessageTargets();
+    form.reset();
+    showMessage(successBox, "Member saved.", "success");
   });
 }
 
-/* ============================================================
-   STATISTICS
-   ============================================================ */
+// Messages
+function renderMessagesList() {
+  const container = document.getElementById("messagesList");
+  if (!container) return;
+  if (!messagesCache || messagesCache.length === 0) {
+    container.innerHTML = `<div class="info-text">No messages.</div>`;
+    return;
+  }
+  container.innerHTML = "";
+  messagesCache
+    .slice()
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0))
+    .reverse()
+    .forEach((msg) => {
+      const div = document.createElement("div");
+      div.className = "list-item";
+      div.id = `message-${msg.id}`;
+      div.innerHTML = `
+        <div class="message-from">${msg.fromDisplayName || msg.fromUsername}</div>
+        <div class="message-text">${msg.text}</div>
+        <div class="message-meta">${msg.date} | To: ${msg.toLabel}</div>
+      `;
+      container.appendChild(div);
+    });
+}
+
+function initMessages() {
+  const form = document.getElementById("sendMessageForm");
+  const errorBox = document.getElementById("sendMessageError");
+  const successBox = document.getElementById("sendMessageSuccess");
+  const textArea = document.getElementById("messageText");
+  if (!form) return;
+
+  renderMessageTargets();
+  renderMessagesList();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (requirePasswordChange) {
+      showMessage(errorBox, "You must change your password first (Settings).");
+      return;
+    }
+
+    const target = document.getElementById("messageTarget").value;
+    const text = textArea.value.trim();
+    if (!text) {
+      showMessage(errorBox, "Message cannot be empty.");
+      return;
+    }
+
+    let toLabel = "All";
+    if (target !== "all") {
+      const u = usersCache.find((x) => x.username === target);
+      toLabel = u ? `${u.displayName} (${u.username})` : target;
+    }
+
+    const now = getGulfNow();
+    const message = {
+      fromUsername: currentUser.username,
+      fromDisplayName: currentUser.displayName,
+      to: target,
+      toLabel,
+      text,
+      date: formatDateTime(now),
+      createdAt: Date.now()
+    };
+
+    const newRef = push(ref(db, "messages"));
+    await set(newRef, message);
+    form.reset();
+    showMessage(successBox, "Message sent.", "success");
+  });
+}
+
+// Statistics
+function updateStatsSummary() {
+  const box = document.getElementById("statsSummaryBox");
+  if (!box) return;
+  const total = movementsCache.length;
+  const received = movementsCache.filter((m) => m.type === "receive").length;
+  const delivered = movementsCache.filter((m) => m.type === "deliver").length;
+  box.innerHTML = `
+    <div class="info-text">Total movements: ${total}</div>
+    <div class="info-text">Received: ${received}</div>
+    <div class="info-text">Delivered: ${delivered}</div>
+  `;
+}
 
 function initStatistics() {
-  if (currentUser.role !== "admin") return;
   updateStatsSummary();
+
+  const formRange = document.getElementById("statsRangeForm");
+  const rangeResult = document.getElementById("statsRangeResult");
+  if (formRange) {
+    formRange.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fromDate = document.getElementById("statsFromDate").value;
+      const toDate = document.getElementById("statsToDate").value;
+      if (!fromDate || !toDate) {
+        rangeResult.textContent = "Please select both dates.";
+        return;
+      }
+      const fromTime = new Date(fromDate + "T00:00:00").getTime();
+      const toTime = new Date(toDate + "T23:59:59").getTime();
+      const filtered = movementsCache.filter((m) => {
+        const t = new Date(m.date.replace(" ", "T")).getTime();
+        return t >= fromTime && t <= toTime;
+      });
+      rangeResult.textContent = `Movements in range: ${filtered.length}`;
+    });
+  }
+
+  const formUser = document.getElementById("statsUserForm");
+  const userResult = document.getElementById("statsUserResult");
+  if (formUser) {
+    formUser.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const selected = document.getElementById("statsUserSelect").value;
+      const count = movementsCache.filter(
+        (m) => m.createdBy === selected || m.driverUsername === selected
+      ).length;
+      userResult.textContent = `Movements related to this user: ${count}`;
+    });
+  }
+
+  const formCar = document.getElementById("statsCarForm");
+  const carResult = document.getElementById("statsCarResult");
+  if (formCar) {
+    formCar.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const carNumber = document.getElementById("statsCarNumber").value.trim();
+      if (!carNumber) {
+        carResult.textContent = "Please enter car number.";
+        return;
+      }
+      const count = movementsCache.filter(
+        (m) => (m.carNumber || "").toLowerCase() === carNumber.toLowerCase()
+      ).length;
+      carResult.textContent = `Movements for this car: ${count}`;
+    });
+  }
 }
 
-function updateStatsSummary() {
-  const totalMov = document.getElementById("statsTotalMovements");
-  const totalUsers = document.getElementById("statsTotalUsers");
+// Settings
+function initSettings() {
+  const passForm = document.getElementById("changePasswordForm");
+  const passError = document.getElementById("changePasswordError");
+  const passSuccess = document.getElementById("changePasswordSuccess");
 
-  if (!totalMov || !totalUsers) return;
+  const phoneForm = document.getElementById("changePhoneForm");
+  const phoneError = document.getElementById("changePhoneError");
+  const phoneSuccess = document.getElementById("changePhoneSuccess");
 
-  totalMov.textContent = movementsCache.length;
-  totalUsers.textContent = usersCache.length;
+  if (passForm) {
+    passForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      const oldPassword = document.getElementById("oldPassword").value.trim();
+      const newPassword = document.getElementById("newPassword").value.trim();
+      const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        showMessage(passError, "Please fill all fields.");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        showMessage(passError, "New passwords do not match.");
+        return;
+      }
+
+      await loadUsers();
+      const idx = usersCache.findIndex((u) => u.username === currentUser.username);
+      if (idx === -1) {
+        showMessage(passError, "User not found.");
+        return;
+      }
+
+      const oldHash = await hashPassword(oldPassword);
+      if (usersCache[idx].passwordHash !== oldHash) {
+        showMessage(passError, "Current password is incorrect.");
+        return;
+      }
+
+      const newHash = await hashPassword(newPassword);
+      const updatedUser = {
+        ...usersCache[idx],
+        passwordHash: newHash,
+        forceChangePassword: false
+      };
+
+      await set(ref(db, `users/${currentUser.username}`), updatedUser);
+      currentUser.forceChangePassword = false;
+      saveSessionLocal(currentUser);
+      requirePasswordChange = false;
+      disableTabsExceptSettings(false);
+      showMessage(passSuccess, "Password updated.", "success");
+      passForm.reset();
+    });
+  }
+
+  if (phoneForm) {
+    phoneForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const newPhone = document.getElementById("newPhone").value.trim();
+      if (!newPhone) {
+        showMessage(phoneError, "Please enter phone.");
+        return;
+      }
+
+      await loadUsers();
+      const idx = usersCache.findIndex((u) => u.username === currentUser.username);
+      if (idx === -1) {
+        showMessage(phoneError, "User not found.");
+        return;
+      }
+
+      const updatedUser = {
+        ...usersCache[idx],
+        phone: newPhone
+      };
+
+      await set(ref(db, `users/${currentUser.username}`), updatedUser);
+      currentUser.phone = newPhone;
+      saveSessionLocal(currentUser);
+      showMessage(phoneSuccess, "Phone updated.", "success");
+      phoneForm.reset();
+    });
+  }
 }
 
-/* ============================================================
-   GLOBAL SEARCH
-   ============================================================ */
-
+// Global search
 function initGlobalSearch() {
+  const overlay = document.getElementById("searchOverlay");
+  const openBtn = document.getElementById("headerSearchBtn");
+  const closeBtn = document.getElementById("closeSearchBtn");
   const input = document.getElementById("globalSearchInput");
-  const container = document.getElementById("globalSearchResults");
+  const box = document.getElementById("globalSearchResults");
+  if (!overlay || !openBtn || !closeBtn || !input || !box) return;
 
-  if (!input || !container) return;
+  openBtn.addEventListener("click", () => {
+    overlay.classList.add("active");
+    input.value = "";
+    box.innerHTML = "";
+    input.focus();
+  });
+
+  closeBtn.addEventListener("click", () => {
+    overlay.classList.remove("active");
+  });
 
   input.addEventListener("input", () => {
-    const q = input.value.trim().toLowerCase();
-    container.innerHTML = "";
-
-    if (!q) return;
+    const term = input.value.trim().toLowerCase();
+    if (!term) {
+      box.innerHTML = "";
+      return;
+    }
 
     const results = [];
 
     movementsCache.forEach((m) => {
-      if (
-        m.driver.toLowerCase().includes(q) ||
-        m.plate.toLowerCase().includes(q) ||
-        m.destination.toLowerCase().includes(q) ||
-        m.notes.toLowerCase().includes(q)
-      ) {
+      const text = `${m.carNumber} ${m.plate} ${m.driverName} ${m.notes}`.toLowerCase();
+      if (text.includes(term)) {
         results.push({
-          type: "Movement",
-          text: `${m.driver} — ${m.plate} — ${m.destination}`,
-          createdAt: m.createdAt
+          type: "movement",
+          id: m.id,
+          label: `Movement: ${m.carNumber} / ${m.plate} / ${m.driverName}`
         });
       }
     });
 
     usersCache.forEach((u) => {
-      if (
-        u.username.toLowerCase().includes(q) ||
-        u.displayName.toLowerCase().includes(q)
-      ) {
+      const text = `${u.username} ${u.displayName} ${u.phone}`.toLowerCase();
+      if (text.includes(term)) {
         results.push({
-          type: "User",
-          text: `${u.displayName} (${u.username})`,
-          createdAt: ""
+          type: "member",
+          id: u.username,
+          label: `Member: ${u.displayName} (${u.username})`
         });
       }
     });
 
-    results.forEach((r) => {
-      const item = document.createElement("div");
-      item.className = "search-item";
-      item.innerHTML = `
-        <strong>${r.type}:</strong> ${r.text}
-        ${r.createdAt ? `<br><span>${r.createdAt}</span>` : ""}
-      `;
-      container.appendChild(item);
+    messagesCache.forEach((msg) => {
+      const text = `${msg.text} ${msg.fromDisplayName} ${msg.toLabel}`.toLowerCase();
+      if (text.includes(term)) {
+        results.push({
+          type: "message",
+          id: msg.id,
+          label: `Message: ${msg.text}`
+        });
+      }
     });
+
+    if (results.length === 0) {
+      box.innerHTML = `<div class="search-result-item">No results.</div>`;
+    } else {
+      box.innerHTML = "";
+      results.forEach((r) => {
+        const div = document.createElement("div");
+        div.className = "search-result-item";
+        div.textContent = r.label;
+        div.addEventListener("click", () => {
+          overlay.classList.remove("active");
+          if (r.type === "movement") {
+            showView("viewMovements");
+            setTimeout(() => {
+              const el = document.getElementById(`movement-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "member") {
+            showView("viewMembers");
+            setTimeout(() => {
+              const el = document.getElementById(`member-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          } else if (r.type === "message") {
+            showView("viewMessages");
+            setTimeout(() => {
+              const el = document.getElementById(`message-${r.id}`);
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 50);
+          }
+        });
+        box.appendChild(div);
+      });
+    }
   });
 }
 
-/* ============================================================
-   LOGOUT
-   ============================================================ */
-
-function initLogout() {
-  const btn = document.getElementById("logoutBtn");
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
-    clearSessionLocal();
-    location.reload();
-  });
-}
-
-/* --- MAIN.JS — PART 5 END --- */
+// Bootstrap
+document.addEventListener("DOMContentLoaded", async () => {
+  showScreen("screenLogin");
+  await ensureDefaultUsers();
+  await loadUsers();
+  handleLogin();
+});
