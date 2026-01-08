@@ -7,20 +7,6 @@
             <square310x310logo src="/al-masaood-logo.png"/>
             <wide310x150logo src="/al-masaood-logo.png"/>
             <TileColor>#0b3c6f</TileColor>
-            <TileImage src="/al-masaood-logo.png"/>
         </tile>
-        <notification>
-            <polling-uri src="/notification.xml"/>
-            <frequency>30</frequency>
-            <cycle>1</cycle>
-        </notification>
-        <taskbar>
-            <custom-taskbar visible="true" show-on-all-desktops="true">
-                <folder-action guid="taskbar-folder" title="Car Movement System">
-                    <action guid="new-movement" title="Add Movement" show-command="new" action="new"/>
-                    <action guid="view-messages" title="View Messages" show-command="view" action="view"/>
-                </folder-action>
-            </custom-taskbar>
-        </taskbar>
     </msapplication>
 </browserconfig>
