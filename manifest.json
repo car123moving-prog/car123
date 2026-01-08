@@ -1,22 +1,171 @@
 {
   "name": "Car Movement System",
-  "short_name": "CMS",
+  "short_name": "CarMS",
+  "description": "Car Movement Management System - Al Masaood Group",
   "lang": "en",
-  "start_url": "index.html",
+  "dir": "ltr",
+  
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0b3c6f",
   "theme_color": "#0b3c6f",
-  "orientation": "portrait",
+  
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  
   "icons": [
     {
-      "src": "al-masaood-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/al-masaood-logo.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "al-masaood-logo.png",
+      "src": "/al-masaood-logo.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/al-masaood-logo.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/al-masaood-logo.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/al-masaood-logo.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/al-masaood-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/al-masaood-logo.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/al-masaood-logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
+  ],
+  
+  "shortcuts": [
+    {
+      "name": "New Movement",
+      "short_name": "Add",
+      "description": "Add new car movement",
+      "url": "/index.html#viewMovements",
+      "icons": [
+        {
+          "src": "/al-masaood-logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "View Messages",
+      "short_name": "Messages",
+      "description": "View your messages",
+      "url": "/index.html#viewMessages",
+      "icons": [
+        {
+          "src": "/al-masaood-logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "short_name": "Stats",
+      "description": "View system statistics",
+      "url": "/index.html#viewStatistics",
+      "icons": [
+        {
+          "src": "/al-masaood-logo.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "https://via.placeholder.com/1280x720/0b3c6f/ffffff?text=Car+Movement+System",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard View"
+    },
+    {
+      "src": "https://via.placeholder.com/720x1280/0b3c6f/ffffff?text=Car+Movement+System",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile View"
+    }
+  ],
+  
+  "related_applications": [],
+  "prefer_related_applications": false,
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+carmovement",
+      "url": "/index.html?action=%s"
+    }
+  ],
+  
+  "share_target": {
+    "action": "/index.html#viewMessages",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "launch_handler": {
+    "client_mode": "auto"
+  },
+  
+  "permissions": [
+    "notifications",
+    "background-sync",
+    "clipboard-write"
   ]
 }
