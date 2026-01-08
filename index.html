@@ -4,6 +4,22 @@
   <meta charset="UTF-8" />
   <title>Car Movement System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0b3c6f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Car Movement System">
+  <meta name="msapplication-TileColor" content="#0b3c6f">
+  <meta name="msapplication-TileImage" content="/al-masaood-logo.png">
+  <meta name="msapplication-config" content="/browserconfig.xml">
+  
+  <!-- Apple Touch Icons -->
+  <link rel="apple-touch-icon" href="/al-masaood-logo.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/al-masaood-logo.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/al-masaood-logo.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="/al-masaood-logo.png">
+  <link rel="mask-icon" href="/al-masaood-logo.png" color="#0b3c6f">
 
   <link rel="stylesheet" href="main.css" />
   <link rel="manifest" href="manifest.json" />
@@ -34,7 +50,7 @@
 
       <div class="login-footer">
         <span>Al Masaood Group</span>
-        <span>v1</span>
+        <span>v2.0</span>
       </div>
     </div>
   </section>
@@ -62,6 +78,7 @@
         <div id="currentUserName" class="user-name"></div>
         <div id="currentUserRole" class="user-role"></div>
       </div>
+      <div id="userBadges" class="user-badges"></div>
     </div>
 
     <!-- TABS -->
@@ -110,6 +127,15 @@
               <label>Driver</label>
               <select id="movementDriverSelect"></select>
             </div>
+            
+            <!-- NEW: Target User Field (Visible only for Admin) -->
+            <div class="form-row" id="targetUserRow" style="display: none;">
+              <label>For Member (Optional)</label>
+              <select id="movementTargetUser">
+                <option value="">Self (Default)</option>
+              </select>
+            </div>
+            
             <div class="form-row">
               <label>Notes</label>
               <textarea id="movementNotes"></textarea>
@@ -132,27 +158,44 @@
             <input type="hidden" id="editMovementId" />
             <div class="form-row">
               <label>Type</label>
-              <select id="editMovementType">
+              <select id="editMovementType" disabled>
                 <option value="receive">RECEIVE</option>
                 <option value="deliver">DELIVER</option>
               </select>
             </div>
             <div class="form-row">
               <label>Car number</label>
-              <input id="editMovementCarNumber" type="text" required />
+              <input id="editMovementCarNumber" type="text" required disabled />
             </div>
             <div class="form-row">
               <label>Plate</label>
-              <input id="editMovementPlate" type="text" required />
+              <input id="editMovementPlate" type="text" required disabled />
             </div>
             <div class="form-row">
               <label>Driver</label>
-              <select id="editMovementDriverSelect"></select>
+              <select id="editMovementDriverSelect" disabled></select>
             </div>
             <div class="form-row">
               <label>Notes</label>
               <textarea id="editMovementNotes"></textarea>
             </div>
+            
+            <!-- NEW: Notes History Section -->
+            <div id="editMovementHistory" class="notes-history" style="display: none;">
+              <div class="form-row">
+                <label>Original Notes</label>
+                <div id="originalNotesText" class="original-notes-text"></div>
+              </div>
+              <div class="form-row">
+                <label>Last Modified By</label>
+                <div id="lastModifiedByText" class="modified-by-text"></div>
+              </div>
+              <div class="form-row">
+                <label>Last Modified At</label>
+                <div id="lastModifiedAtText" class="modified-at-text"></div>
+              </div>
+            </div>
+            
             <button type="submit" class="btn-primary full-width">Update movement</button>
             <div id="editMovementError" class="error-text"></div>
             <div id="editMovementSuccess" class="success-text"></div>
@@ -182,7 +225,8 @@
         <div class="view-header-sub">Manage users and drivers</div>
       </div>
 
-      <div class="card big-card">
+      <!-- ADD MEMBER CARD (Visible only for Admin) -->
+      <div id="addMemberCard" class="card big-card">
         <div class="card-header-row collapsible-header" data-target="addMemberBody">
           <div>
             <h3 class="card-title">Add member</h3>
@@ -215,6 +259,13 @@
                 <option value="user">User</option>
               </select>
             </div>
+            <div class="form-row">
+              <label>Status</label>
+              <select id="memberStatus">
+                <option value="active">Active</option>
+                <option value="banned">Banned</option>
+              </select>
+            </div>
             <button type="submit" class="btn-primary full-width">Save member</button>
             <div id="addMemberError" class="error-text"></div>
             <div id="addMemberSuccess" class="success-text"></div>
@@ -222,16 +273,17 @@
         </div>
       </div>
 
+      <!-- MEMBERS LIST -->
       <div class="card big-card">
         <div class="card-header-row collapsible-header" data-target="membersListBody">
           <div>
             <h3 class="card-title">Members list</h3>
-            <div class="card-subtitle">All users and drivers</div>
+            <div class="view-header-sub">All users and drivers</div>
           </div>
           <span class="collapse-indicator">▼</span>
         </div>
         <div id="membersListBody" class="collapsible-body">
-          <div id="membersList" class="list"></div>
+          <div id="membersList" class="list members-accordion"></div>
         </div>
       </div>
     </div>
@@ -243,6 +295,7 @@
         <div class="view-header-sub">Internal messaging between users</div>
       </div>
 
+      <!-- SEND MESSAGE CARD -->
       <div class="card big-card">
         <div class="card-header-row collapsible-header" data-target="sendMessageBody">
           <div>
@@ -268,6 +321,7 @@
         </div>
       </div>
 
+      <!-- MESSAGES LIST -->
       <div class="card big-card">
         <div class="card-header-row collapsible-header" data-target="messagesListBody">
           <div>
