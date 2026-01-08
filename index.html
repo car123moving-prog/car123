@@ -1,214 +1,157 @@
-<!-- --- INDEX.HTML — PART 1 START --- -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Car Movement System v1.1</title>
-  <link rel="stylesheet" href="main.css" />
+  <title>Car Movement Management</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
+  <div id="toastBox"></div>
 
-  <!-- ============================
-       LOGIN SCREEN
-  ============================ -->
+  <!-- Screens -->
   <div id="screenLogin" class="screen active">
-    <div class="login-box">
+    <form id="loginForm">
       <h2>Login</h2>
-
-      <form id="loginForm">
-        <input id="loginUsername" type="text" placeholder="Username" />
-        <input id="loginPassword" type="password" placeholder="Password" />
-        <button type="submit">Login</button>
-      </form>
-
+      <input id="loginUsername" placeholder="Username" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button type="submit">Login</button>
       <div id="loginError" class="error-text"></div>
-    </div>
+    </form>
   </div>
 
-  <!-- ============================
-       HOME SCREEN
-  ============================ -->
   <div id="screenHome" class="screen">
+    <header>
+      <div id="currentUserName"></div>
+      <div id="currentUserRole"></div>
+      <button id="logoutBtn">Logout</button>
+      <button id="headerSearchBtn">Search</button>
+    </header>
 
-    <!-- USER BAR -->
-    <div class="user-bar">
-      <div>
-        <strong id="currentUserName"></strong>
-        <span id="currentUserRole"></span>
-      </div>
-      <button id="logoutBtn" class="logout-btn">Logout</button>
-    </div>
-
-    <!-- TABS -->
-    <div class="tabs">
-      <button class="tab-btn active" data-view="viewMovements">Movements</button>
-      <button class="tab-btn" data-view="viewMessages">Messages</button>
+    <!-- Tabs -->
+    <nav>
+      <button class="tab-btn" data-view="viewMovements">Movements</button>
       <button class="tab-btn" data-view="viewMembers">Members</button>
+      <button class="tab-btn" data-view="viewMessages">Messages</button>
       <button class="tab-btn" data-view="viewStatistics">Statistics</button>
       <button class="tab-btn" data-view="viewSettings">Settings</button>
-    </div>
+    </nav>
 
-    <!-- ============================
-         VIEWS (EMPTY STRUCTURE)
-    ============================ -->
-
-    <!-- MOVEMENTS VIEW -->
+    <!-- Views -->
     <div id="viewMovements" class="view active">
-      <!-- content will be in PART 2 -->
+      <div class="collapsible-header" data-target="addMovementBody">
+        <span>Add Movement</span> <span class="collapse-indicator">▼</span>
+      </div>
+      <div id="addMovementBody" class="collapsible-body">
+        <form id="addMovementForm">
+          <select id="movementType">
+            <option value="receive">Receive</option>
+            <option value="deliver">Deliver</option>
+          </select>
+          <input id="movementCarNumber" placeholder="Car Number" />
+          <input id="movementPlate" placeholder="Plate" />
+          <select id="movementDriverSelect"></select>
+          <textarea id="movementNotes" placeholder="Notes"></textarea>
+          <button type="submit">Save</button>
+          <div id="addMovementError" class="error-text"></div>
+          <div id="addMovementSuccess" class="success-text"></div>
+        </form>
+      </div>
+      <div id="movementsList"></div>
     </div>
 
-    <!-- MESSAGES VIEW -->
-    <div id="viewMessages" class="view">
-      <!-- content will be in PART 2 -->
-    </div>
-
-    <!-- MEMBERS VIEW -->
     <div id="viewMembers" class="view">
-      <!-- content will be in PART 2 -->
+      <form id="addMemberForm">
+        <input id="memberUsername" placeholder="Username" />
+        <input id="memberPassword" type="password" placeholder="Password" />
+        <input id="memberDisplayName" placeholder="Display Name" />
+        <input id="memberPhone" placeholder="Phone" />
+        <select id="memberRole">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Add Member</button>
+        <div id="addMemberError" class="error-text"></div>
+        <div id="addMemberSuccess" class="success-text"></div>
+      </form>
+      <div id="membersList"></div>
     </div>
 
-    <!-- STATISTICS VIEW -->
+    <div id="viewMessages" class="view">
+      <form id="sendMessageForm">
+        <select id="messageTarget"></select>
+        <textarea id="messageText" placeholder="Message"></textarea>
+        <button type="submit">Send</button>
+        <div id="sendMessageError" class="error-text"></div>
+        <div id="sendMessageSuccess" class="success-text"></div>
+      </form>
+      <div id="messagesList"></div>
+    </div>
+
     <div id="viewStatistics" class="view">
-      <!-- content will be in PART 2 -->
+      <div id="statsSummaryBox"></div>
+      <form id="statsRangeForm">
+        <input type="date" id="statsFromDate" />
+        <input type="date" id="statsToDate" />
+        <button type="submit">Filter</button>
+        <div id="statsRangeResult"></div>
+      </form>
+      <form id="statsUserForm">
+        <select id="statsUserSelect"></select>
+        <button type="submit">Check</button>
+        <div id="statsUserResult"></div>
+      </form>
+      <form id="statsCarForm">
+        <input id="statsCarNumber" placeholder="Car Number" />
+        <button type="submit">Check</button>
+        <div id="statsCarResult"></div>
+      </form>
     </div>
 
-    <!-- SETTINGS VIEW -->
     <div id="viewSettings" class="view">
-      <!-- content will be in PART 2 -->
-    </div>
-
-  </div>
-
-<!-- --- INDEX.HTML — PART 1 END --- -->
-
-<!-- --- INDEX.HTML — PART 2 START --- -->
-
-<!-- ============================
-     MOVEMENTS VIEW CONTENT
-============================ -->
-<div id="viewMovements" class="view active">
-
-  <h2 class="section-title">Add Movement</h2>
-
-  <form id="movementForm" class="card">
-    <input id="movementDriver" type="text" placeholder="Driver Name" />
-    <input id="movementPlate" type="text" placeholder="Plate Number" />
-    <input id="movementDestination" type="text" placeholder="Destination" />
-    <textarea id="movementNotes" placeholder="Notes (optional)"></textarea>
-    <button type="submit">Add Movement</button>
-    <div id="movementError" class="error-text"></div>
-  </form>
-
-  <h2 class="section-title">Movements List</h2>
-  <div id="movementsList"></div>
-
-</div>
-
-<!-- ============================
-     MESSAGES VIEW CONTENT
-============================ -->
-<div id="viewMessages" class="view">
-
-  <h2 class="section-title">Send Message</h2>
-
-  <form id="messageForm" class="card">
-    <select id="messageTarget"></select>
-    <textarea id="messageText" placeholder="Write your message..."></textarea>
-    <button type="submit">Send</button>
-    <div id="messageError" class="error-text"></div>
-  </form>
-
-  <h2 class="section-title">Messages</h2>
-  <div id="messagesList"></div>
-
-</div>
-
-<!-- ============================
-     MEMBERS VIEW CONTENT
-============================ -->
-<div id="viewMembers" class="view">
-
-  <h2 class="section-title">Members</h2>
-  <div id="membersList"></div>
-
-</div>
-
-<!-- ============================
-     STATISTICS VIEW CONTENT
-============================ -->
-<div id="viewStatistics" class="view">
-
-  <h2 class="section-title">Statistics</h2>
-
-  <div class="stats-box">
-    <div class="stat-item">
-      <strong>Total Movements:</strong>
-      <span id="statsTotalMovements">0</span>
-    </div>
-
-    <div class="stat-item">
-      <strong>Total Users:</strong>
-      <span id="statsTotalUsers">0</span>
+      <form id="changePasswordForm">
+        <input id="oldPassword" type="password" placeholder="Old Password" />
+        <input id="newPassword" type="password" placeholder="New Password" />
+        <input id="confirmPassword" type="password" placeholder="Confirm Password" />
+        <button type="submit">Change Password</button>
+        <div id="changePasswordError" class="error-text"></div>
+        <div id="changePasswordSuccess" class="success-text"></div>
+      </form>
+      <form id="changePhoneForm">
+        <input id="newPhone" placeholder="New Phone" />
+        <button type="submit">Update Phone</button>
+        <div id="changePhoneError" class="error-text"></div>
+        <div id="changePhoneSuccess" class="success-text"></div>
+      </form>
     </div>
   </div>
 
-</div>
-
-<!-- ============================
-     SETTINGS VIEW CONTENT
-============================ -->
-<div id="viewSettings" class="view">
-
-  <h2 class="section-title">Account Settings</h2>
-
-  <form id="settingsForm" class="card">
-    <input id="settingsPhone" type="text" placeholder="Phone Number" />
-
-    <input id="settingsOldPass" type="password" placeholder="Old Password" />
-    <input id="settingsNewPass" type="password" placeholder="New Password" />
-
-    <button type="submit">Save Changes</button>
-    <div id="settingsError" class="error-text"></div>
-  </form>
-
-</div>
-
-<!-- ============================
-     GLOBAL SEARCH
-============================ -->
-<div class="global-search">
-  <input id="globalSearchInput" type="text" placeholder="Search movements or users..." />
-  <div id="globalSearchResults"></div>
-</div>
-
-<!-- ============================
-     EDIT NOTES POPUP
-============================ -->
-<div id="editNotesPopup" class="popup">
-  <div class="popup-content">
-    <h3>Edit Notes</h3>
-    <textarea id="editNotesText"></textarea>
-
-    <div class="popup-buttons">
-      <button id="editNotesSave">Save</button>
-      <button onclick="closeEditNotesPopup()">Cancel</button>
-    </div>
+  <!-- Edit Movement Modal -->
+  <div id="editMovementModal" class="modal">
+    <form id="editMovementForm">
+      <input type="hidden" id="editMovementId" />
+      <select id="editMovementType">
+        <option value="receive">Receive</option>
+        <option value="deliver">Deliver</option>
+      </select>
+      <input id="editMovementCarNumber" placeholder="Car Number" />
+      <input id="editMovementPlate" placeholder="Plate" />
+      <select id="editMovementDriverSelect"></select>
+      <textarea id="editMovementNotes" placeholder="Notes"></textarea>
+      <button type="submit">Update</button>
+      <button type="button" id="closeEditMovementBtn">Cancel</button>
+      <div id="editMovementError" class="error-text"></div>
+      <div id="editMovementSuccess" class="success-text"></div>
+    </form>
   </div>
-</div>
 
-<!-- ============================
-     TOAST CONTAINER
-============================ -->
-<div id="toastBox"></div>
+  <!-- Search Overlay -->
+  <div id="searchOverlay" class="overlay">
+    <button id="closeSearchBtn">Close</button>
+    <input id="globalSearchInput" placeholder="Search..." />
+    <div id="globalSearchResults"></div>
+  </div>
 
-<!-- ============================
-     MAIN SCRIPT
-============================ -->
-<script type="module" src="main.js"></script>
-
+  <script type="module" src="main.js"></script>
 </body>
 </html>
-
-<!-- --- INDEX.HTML — PART 2 END --- -->
