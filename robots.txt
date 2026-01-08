@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /private/
+
+Sitemap: /sitemap.xml
+
+# Car Movement System - Al Masaood Group
+# This is a private application, please respect privacy
