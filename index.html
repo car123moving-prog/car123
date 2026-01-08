@@ -90,6 +90,7 @@
         <div id="currentUserRole" class="user-role"></div>
       </div>
       <div id="userBadges" class="user-badges"></div>
+      <div id="currentDateTime" class="datetime-header"></div>
     </div>
 
     <!-- TABS -->
@@ -162,32 +163,33 @@
       <div id="editMovementModal" class="modal">
         <div class="modal-content card">
           <div class="modal-header">
-            <h3>Edit movement</h3>
+            <h3>Edit Movement Notes</h3>
             <button id="closeEditMovementBtn" class="text-btn">Close</button>
           </div>
           <form id="editMovementForm" class="form-grid">
             <input type="hidden" id="editMovementId" />
+            
+            <!-- Sacred Fields - Read Only -->
             <div class="form-row">
-              <label>Type</label>
-              <select id="editMovementType" disabled>
-                <option value="receive">RECEIVE</option>
-                <option value="deliver">DELIVER</option>
-              </select>
+              <label>Type (Read-only)</label>
+              <input id="editMovementType" type="text" readonly class="sacred-field">
             </div>
             <div class="form-row">
-              <label>Car number</label>
-              <input id="editMovementCarNumber" type="text" required disabled />
+              <label>Car number (Read-only)</label>
+              <input id="editMovementCarNumber" type="text" readonly class="sacred-field">
             </div>
             <div class="form-row">
-              <label>Plate</label>
-              <input id="editMovementPlate" type="text" required disabled />
+              <label>Plate (Read-only)</label>
+              <input id="editMovementPlate" type="text" readonly class="sacred-field">
             </div>
             <div class="form-row">
-              <label>Driver</label>
-              <select id="editMovementDriverSelect" disabled></select>
+              <label>Driver (Read-only)</label>
+              <input id="editMovementDriverDisplay" type="text" readonly class="sacred-field">
             </div>
+            
+            <!-- Notes Only - Editable -->
             <div class="form-row">
-              <label>Notes</label>
+              <label>Notes <small>(Only this field can be edited)</small></label>
               <textarea id="editMovementNotes"></textarea>
             </div>
             
@@ -207,7 +209,7 @@
               </div>
             </div>
             
-            <button type="submit" class="btn-primary full-width">Update movement</button>
+            <button type="submit" class="btn-primary full-width">Update Notes</button>
             <div id="editMovementError" class="error-text"></div>
             <div id="editMovementSuccess" class="success-text"></div>
           </form>
@@ -495,5 +497,10 @@
       <div id="globalSearchResults" class="search-results"></div>
     </div>
   </div>
+
+  <!-- DEVELOPER FOOTER -->
+  <footer class="developer-footer">
+    Developed by <strong>MOHAMED SAAD</strong> © 2024 - Car Movement System v2.0
+  </footer>
 </body>
 </html>
