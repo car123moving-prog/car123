@@ -1,4 +1,4 @@
-// main.js — Car Movement System v2.0
+// main.js — Car Movement System v2.0 (Final Corrected Version)
 // نظام إدارة حركة السيارات - مجموعة المسعود
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -7,7 +7,6 @@ import {
   ref,
   set,
   get,
-  child,
   push,
   onValue,
   onChildAdded,
@@ -80,6 +79,18 @@ function formatDateTime(dt) {
   return `${y}-${m}-${d} ${String(h).padStart(2, "0")}:${min} ${ampm}`;
 }
 
+// Format English date and time for display
+function formatEnglishDateTime() {
+  const now = getGulfNow();
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = days[now.getDay()];
+  
+  const dateStr = `${dayName} ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  
+  return `${dateStr} | ${timeStr}`;
+}
+
 // Check if within 24 hours
 function isWithin24Hours(timestamp) {
   if (!timestamp) return false;
@@ -149,7 +160,6 @@ function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.textContent = message;
   
-  // Set color based on type
   if (type === "success") {
     toast.style.background = "#2e7d32";
   } else if (type === "warning") {
@@ -278,13 +288,11 @@ function listenMessages() {
     renderMessagesList();
   });
 
-  // Show notification for new messages
   onChildAdded(messagesRef, (snapshot) => {
     const msg = snapshot.val();
     if (!currentUser) return;
     if (msg.fromUsername === currentUser.username) return;
     
-    // Check if message is for current user or for all
     if (msg.to === "all" || msg.to === currentUser.username) {
       showToast(`New message from ${msg.fromDisplayName || msg.fromUsername}`, "info");
     }
@@ -325,6 +333,7 @@ function updateUserBar() {
   const nameEl = document.getElementById("currentUserName");
   const roleEl = document.getElementById("currentUserRole");
   const badgesEl = document.getElementById("userBadges");
+  const dateTimeEl = document.getElementById("currentDateTime");
   
   if (!currentUser) return;
   
@@ -347,6 +356,16 @@ function updateUserBar() {
       statusBadge.textContent = "BANNED";
       badgesEl.appendChild(statusBadge);
     }
+  }
+  
+  // Update date time display
+  updateDateTime();
+}
+
+function updateDateTime() {
+  const el = document.getElementById("currentDateTime");
+  if (el) {
+    el.textContent = formatEnglishDateTime();
   }
 }
 
@@ -371,7 +390,16 @@ function applyRoleVisibility() {
   
   // Show/hide target user field in add movement form
   const targetUserRow = document.getElementById("targetUserRow");
-  if (targetUserRow) targetUserRow.style.display = isAdmin ? "" : "none";
+  const targetUserLabel = document.querySelector('label[for="movementTargetUser"]');
+  if (targetUserRow && targetUserLabel) {
+    if (isAdmin) {
+      targetUserRow.style.display = "";
+      targetUserLabel.style.display = "";
+    } else {
+      targetUserRow.style.display = "none";
+      targetUserLabel.style.display = "none";
+    }
+  }
   
   // Redirect if trying to access restricted views
   if (!isAdmin) {
@@ -412,14 +440,19 @@ function disableTabsExceptSettings(disable) {
   });
 }
 
-// Check permissions for movement actions
+// Check permissions for movement actions - CORRECTED VERSION
 function canEditMovement(movement) {
   if (!currentUser) return false;
   if (currentUser.isActive === false) return false;
   
   // Admin can edit notes of any movement
   if (currentUser.role === "admin") {
-    return { canEdit: true, canEditNotes: true, reason: "Admin privileges" };
+    return { 
+      canEdit: true, 
+      canEditNotes: true,
+      canEditSacredFields: false, // NO ONE can edit sacred fields
+      reason: "Admin can edit notes only"
+    };
   }
   
   // User can only edit their own movements' notes within 24 hours
@@ -428,11 +461,17 @@ function canEditMovement(movement) {
     return { 
       canEdit: canEditNotes, 
       canEditNotes: canEditNotes,
+      canEditSacredFields: false,
       reason: canEditNotes ? "Owner within 24 hours" : "Time limit expired (24h)"
     };
   }
   
-  return { canEdit: false, canEditNotes: false, reason: "Not owner" };
+  return { 
+    canEdit: false, 
+    canEditNotes: false,
+    canEditSacredFields: false,
+    reason: "Not owner" 
+  };
 }
 
 function canViewMovement(movement) {
@@ -474,10 +513,6 @@ function initCollapsibles() {
       if (!body) return;
       
       const isOpen = body.classList.contains("open");
-      const allBodies = document.querySelectorAll(".collapsible-body");
-      const allIndicators = document.querySelectorAll(".collapse-indicator");
-      
-      // Close all others in the same card
       const parentCard = h.closest(".card");
       if (parentCard) {
         parentCard.querySelectorAll(".collapsible-body").forEach(b => {
@@ -488,7 +523,6 @@ function initCollapsibles() {
         });
       }
       
-      // Toggle current
       if (isOpen) {
         body.classList.remove("open");
         h.querySelector(".collapse-indicator").textContent = "▼";
@@ -499,7 +533,6 @@ function initCollapsibles() {
     });
   });
 
-  // Keep add movement form open by default
   const addMovementBody = document.getElementById("addMovementBody");
   if (addMovementBody) addMovementBody.classList.add("open");
 }
@@ -595,6 +628,9 @@ function enterApp() {
   initGlobalSearch();
   listenMovements();
   listenMessages();
+  
+  // Update date time every minute
+  setInterval(updateDateTime, 60000);
 
   // Force password change for admin if required
   if (currentUser && currentUser.role === "admin" && currentUser.forceChangePassword) {
@@ -628,10 +664,9 @@ function initLogout() {
 
 function renderDriverSelect() {
   const select = document.getElementById("movementDriverSelect");
-  const editSelect = document.getElementById("editMovementDriverSelect");
+  if (!select) return;
   
-  if (select) select.innerHTML = "";
-  if (editSelect) editSelect.innerHTML = "";
+  select.innerHTML = "";
   
   // Only show active users
   const activeUsers = usersCache.filter(u => u.isActive !== false);
@@ -640,8 +675,7 @@ function renderDriverSelect() {
     const opt = document.createElement("option");
     opt.value = u.username;
     opt.textContent = `${u.displayName} (${u.username})`;
-    if (select) select.appendChild(opt.cloneNode(true));
-    if (editSelect) editSelect.appendChild(opt);
+    select.appendChild(opt);
   });
 }
 
@@ -651,7 +685,7 @@ function renderTargetUserSelect() {
   
   select.innerHTML = '<option value="">Self (Default)</option>';
   
-  // Admin can assign to any active user
+  // Admin can assign to any active user except themselves
   if (currentUser && currentUser.role === "admin") {
     const activeUsers = usersCache.filter(u => 
       u.isActive !== false && u.username !== currentUser.username
@@ -700,7 +734,7 @@ function buildMovementItem(m) {
   header.appendChild(left);
   header.appendChild(right);
 
-  // Movement metadata
+  // Movement metadata - Sacred Fields
   const meta = document.createElement("div");
   meta.className = "list-item-meta";
   
@@ -717,7 +751,7 @@ function buildMovementItem(m) {
   // Notes section
   const notes = document.createElement("div");
   notes.className = "message-text";
-  notes.textContent = m.notes || "-";
+  notes.innerHTML = `<strong>Notes:</strong> ${m.notes || "-"}`;
 
   // Show modification history if exists
   if (m.lastModifiedBy || m.originalNotes) {
@@ -726,6 +760,8 @@ function buildMovementItem(m) {
     history.style.marginTop = "10px";
     history.style.padding = "10px";
     history.style.fontSize = "0.85em";
+    history.style.backgroundColor = "#f8f9fa";
+    history.style.borderRadius = "6px";
     
     let historyHTML = "";
     
@@ -750,12 +786,12 @@ function buildMovementItem(m) {
   const actions = document.createElement("div");
   actions.className = "list-item-actions";
 
-  // Edit button with permission check
+  // Edit button with permission check - ONLY for editing NOTES
   const editPermission = canEditMovement(m);
-  if (editPermission.canEditNotes) {
+  if (editPermission.canEdit) {
     const btnEdit = document.createElement("button");
     btnEdit.className = "action-btn";
-    btnEdit.textContent = "Edit Notes";
+    btnEdit.textContent = "Edit Notes Only";
     btnEdit.addEventListener("click", () => openEditMovementModal(m));
     actions.appendChild(btnEdit);
     
@@ -885,10 +921,10 @@ function initMovements() {
       driverUsername,
       driverName: driver ? driver.displayName : driverUsername,
       notes,
-      originalNotes: notes, // Save original notes
+      originalNotes: notes,
       createdBy: currentUser.username,
       createdByDisplayName: currentUser.displayName,
-      targetUser: targetUser || currentUser.username, // Default to self
+      targetUser: targetUser || currentUser.username,
       date: formatDateTime(now),
       createdAt: Date.now(),
       lastModifiedBy: null,
@@ -922,25 +958,18 @@ function openEditMovementModal(m) {
   
   // Check permissions
   const permission = canEditMovement(m);
-  if (!permission.canEditNotes) {
+  if (!permission.canEdit) {
     showToast(`Cannot edit: ${permission.reason}`, "warning");
     return;
   }
 
-  // Populate form
+  // Populate form - ALL fields are read-only except notes
   document.getElementById("editMovementId").value = m.id;
-  document.getElementById("editMovementType").value = m.type;
+  document.getElementById("editMovementType").value = m.type.toUpperCase();
   document.getElementById("editMovementCarNumber").value = m.carNumber;
   document.getElementById("editMovementPlate").value = m.plate;
-  document.getElementById("editMovementDriverSelect").value = m.driverUsername;
+  document.getElementById("editMovementDriverDisplay").value = m.driverName || m.driverUsername;
   document.getElementById("editMovementNotes").value = m.notes || "";
-  
-  // Disable "sacred" fields for non-admin users
-  const isAdmin = currentUser && currentUser.role === "admin";
-  document.getElementById("editMovementType").disabled = !isAdmin;
-  document.getElementById("editMovementCarNumber").disabled = !isAdmin;
-  document.getElementById("editMovementPlate").disabled = !isAdmin;
-  document.getElementById("editMovementDriverSelect").disabled = !isAdmin;
   
   // Show notes history if available
   const historySection = document.getElementById("editMovementHistory");
@@ -948,7 +977,7 @@ function openEditMovementModal(m) {
     historySection.style.display = "block";
     
     if (m.originalNotes) {
-      document.getElementById("originalNotesText").textContent = m.originalNotes;
+      document.getElementById("originalNotesText").textContent = m.originalNotes || m.notes;
     }
     
     if (m.lastModifiedBy) {
@@ -986,15 +1015,11 @@ function initEditMovementModal() {
     if (!currentUser || currentUser.isActive === false) return;
 
     const id = document.getElementById("editMovementId").value;
-    const type = document.getElementById("editMovementType").value;
-    const carNumber = document.getElementById("editMovementCarNumber").value.trim();
-    const plate = document.getElementById("editMovementPlate").value.trim();
-    const driverUsername = document.getElementById("editMovementDriverSelect").value;
     const notes = document.getElementById("editMovementNotes").value.trim();
 
     // Basic validation
-    if (!carNumber || !plate || !driverUsername) {
-      showMessage(errorBox, "Please fill required fields.");
+    if (notes === "") {
+      showMessage(errorBox, "Notes cannot be empty.");
       return;
     }
 
@@ -1007,7 +1032,7 @@ function initEditMovementModal() {
 
     // Check permissions again
     const permission = canEditMovement(existing);
-    if (!permission.canEditNotes) {
+    if (!permission.canEdit) {
       showMessage(errorBox, `Cannot edit: ${permission.reason}`);
       return;
     }
@@ -1020,18 +1045,12 @@ function initEditMovementModal() {
       }
     }
 
-    const driver = usersCache.find((u) => u.username === driverUsername);
     const now = getGulfNow();
     
-    // Prepare update
+    // Prepare update - ONLY notes can be changed
     const updated = {
       ...existing,
-      type: currentUser.role === "admin" ? type : existing.type,
-      carNumber: currentUser.role === "admin" ? carNumber : existing.carNumber,
-      plate: currentUser.role === "admin" ? plate : existing.plate,
-      driverUsername: currentUser.role === "admin" ? driverUsername : existing.driverUsername,
-      driverName: currentUser.role === "admin" ? (driver ? driver.displayName : driverUsername) : existing.driverName,
-      notes: notes,
+      notes: notes, // Only notes field changes
       lastModifiedBy: currentUser.displayName || currentUser.username,
       lastModifiedAt: formatDateTime(now)
     };
@@ -1052,8 +1071,8 @@ function initEditMovementModal() {
 
     try {
       await set(ref(db, `movements/${id}`), updated);
-      showMessage(successBox, "Movement updated successfully.", "success");
-      showToast("Movement updated", "success");
+      showMessage(successBox, "Movement notes updated successfully.", "success");
+      showToast("Movement notes updated", "success");
       
       setTimeout(() => {
         modal.classList.remove("active");
@@ -1061,7 +1080,7 @@ function initEditMovementModal() {
       }, 800);
       
     } catch (error) {
-      showMessage(errorBox, "Error updating movement: " + error.message);
+      showMessage(errorBox, "Error updating movement notes: " + error.message);
       console.error("Error updating movement:", error);
     }
   });
@@ -1210,6 +1229,86 @@ function renderMessageTargets() {
   }
 }
 
+function openMemberEditModal(user) {
+  const modal = document.createElement('div');
+  modal.className = 'modal active';
+  modal.innerHTML = `
+    <div class="modal-content card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Edit Member: ${user.displayName}</h3>
+        <button class="text-btn close-modal">Close</button>
+      </div>
+      <form class="form-grid" id="memberEditForm">
+        <input type="hidden" id="editMemberUsername" value="${user.username}">
+        <div class="form-row">
+          <label>Display Name</label>
+          <input type="text" id="editMemberDisplayName" value="${user.displayName}" required>
+        </div>
+        <div class="form-row">
+          <label>Phone</label>
+          <input type="text" id="editMemberPhone" value="${user.phone || ''}">
+        </div>
+        ${currentUser.role === 'admin' ? `
+          <div class="form-row">
+            <label>Role</label>
+            <select id="editMemberRole">
+              <option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option>
+              <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Status</label>
+            <select id="editMemberStatus">
+              <option value="active" ${user.isActive !== false ? 'selected' : ''}>Active</option>
+              <option value="banned" ${user.isActive === false ? 'selected' : ''}>Banned</option>
+            </select>
+          </div>
+        ` : ''}
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Event listeners
+  modal.querySelector('.close-modal').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
+  
+  modal.querySelector('#memberEditForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('editMemberUsername').value;
+    const userObj = usersCache.find(u => u.username === username);
+    
+    if (!userObj) {
+      showToast('User not found', 'error');
+      return;
+    }
+    
+    const userData = {
+      displayName: document.getElementById('editMemberDisplayName').value.trim(),
+      phone: document.getElementById('editMemberPhone').value.trim()
+    };
+    
+    if(currentUser.role === 'admin') {
+      userData.role = document.getElementById('editMemberRole').value;
+      userData.isActive = document.getElementById('editMemberStatus').value === 'active';
+    }
+    
+    try {
+      await set(ref(db, `users/${userObj.uid}`), { ...userObj, ...userData });
+      showToast('Member updated successfully', 'success');
+      modal.remove();
+      await loadUsers();
+      renderMembersList();
+      renderDriverSelect();
+      renderMessageTargets();
+    } catch(error) {
+      showToast('Error updating member', 'error');
+    }
+  });
+}
+
 function buildMemberAccordionItem(user) {
   const div = document.createElement("div");
   div.className = "member-accordion-item";
@@ -1301,6 +1400,47 @@ function buildMemberAccordionItem(user) {
   movementsSection.appendChild(movementsTitle);
   movementsSection.appendChild(movementsList);
   body.appendChild(movementsSection);
+  
+  // Control buttons
+  const controlsDiv = document.createElement("div");
+  controlsDiv.className = "member-controls";
+  
+  // Edit button - available for admin or self
+  if(currentUser && (currentUser.role === 'admin' || currentUser.username === user.username)) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'action-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => openMemberEditModal(user));
+    controlsDiv.appendChild(editBtn);
+  }
+  
+  // Ban/Activate button - admin only
+  if(currentUser && currentUser.role === 'admin' && user.username !== currentUser.username) {
+    const banBtn = document.createElement('button');
+    banBtn.className = `action-btn ${user.isActive === false ? 'bg-success' : 'bg-danger'}`;
+    banBtn.textContent = user.isActive === false ? 'Activate' : 'Ban';
+    banBtn.addEventListener('click', async () => {
+      if(confirm(`Are you sure you want to ${user.isActive === false ? 'activate' : 'ban'} ${user.displayName}?`)) {
+        try {
+          await update(ref(db, `users/${user.uid}`), { 
+            isActive: user.isActive === false ? true : false 
+          });
+          showToast(`Member ${user.isActive === false ? 'activated' : 'banned'}`, 'success');
+          await loadUsers();
+          renderMembersList();
+          renderDriverSelect();
+          renderMessageTargets();
+        } catch(error) {
+          showToast('Error updating member status', 'error');
+        }
+      }
+    });
+    controlsDiv.appendChild(banBtn);
+  }
+  
+  if(controlsDiv.children.length > 0) {
+    body.appendChild(controlsDiv);
+  }
   
   // Toggle functionality
   header.addEventListener("click", () => {
@@ -2076,62 +2216,6 @@ function initGlobalSearch() {
 }
 
 // ============================================
-// PWA UPDATE HANDLER
-// ============================================
-
-function initPWAUpdate() {
-  // Check if service worker is registered
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(registration => {
-      // Listen for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // New update available
-            showToast('New version available. Refresh to update.', 'info');
-            
-            // Add refresh button to toast
-            setTimeout(() => {
-              const toasts = document.querySelectorAll('#toastBox div');
-              const lastToast = toasts[toasts.length - 1];
-              if (lastToast) {
-                const refreshBtn = document.createElement('button');
-                refreshBtn.textContent = 'Refresh';
-                refreshBtn.style.marginLeft = '10px';
-                refreshBtn.style.padding = '2px 8px';
-                refreshBtn.style.background = 'white';
-                refreshBtn.style.color = '#0b3c6f';
-                refreshBtn.style.border = 'none';
-                refreshBtn.style.borderRadius = '4px';
-                refreshBtn.style.cursor = 'pointer';
-                refreshBtn.style.fontWeight = 'bold';
-                
-                refreshBtn.addEventListener('click', () => {
-                  window.location.reload();
-                });
-                
-                lastToast.appendChild(refreshBtn);
-              }
-            }, 100);
-          }
-        });
-      });
-    });
-    
-    // Check for updates every hour
-    setInterval(() => {
-      navigator.serviceWorker.getRegistration().then(registration => {
-        if (registration) {
-          registration.update();
-        }
-      });
-    }, 60 * 60 * 1000); // 1 hour
-  }
-}
-
-// ============================================
 // APPLICATION BOOTSTRAP
 // ============================================
 
@@ -2142,7 +2226,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     await ensureDefaultUsers();
     await loadUsers();
     handleLogin();
-    initPWAUpdate();
   } catch (error) {
     console.error("Application initialization error:", error);
     showToast("Application initialization failed. Please refresh.", "error");
@@ -2157,19 +2240,3 @@ document.addEventListener("DOMContentLoaded", async () => {
     showToast('You are offline. Some features may not work.', 'warning');
   });
 });
-
-// ============================================
-// EXPORT FOR TESTING (if needed)
-// ============================================
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    generateUID,
-    hashPassword,
-    getGulfNow,
-    formatDateTime,
-    isWithin24Hours,
-    canEditMovement,
-    canViewMovement
-  };
-}
