@@ -19,6 +19,8 @@
   <link rel="apple-touch-icon" sizes="152x152" href="/al-masaood-logo.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/al-masaood-logo.png">
   <link rel="apple-touch-icon" sizes="167x167" href="/al-masaood-logo.png">
+  
+  <!-- Safari Pinned Tab -->
   <link rel="mask-icon" href="/al-masaood-logo.png" color="#0b3c6f">
 
   <link rel="stylesheet" href="main.css" />
@@ -26,7 +28,16 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("service-worker.js");
+        navigator.serviceWorker.register("service-worker.js").then(registration => {
+          console.log("ServiceWorker registered: ", registration);
+          
+          // Check for updates every hour
+          setInterval(() => {
+            registration.update();
+          }, 60 * 60 * 1000);
+        }).catch(error => {
+          console.log("ServiceWorker registration failed: ", error);
+        });
       });
     }
   </script>
@@ -128,7 +139,7 @@
               <select id="movementDriverSelect"></select>
             </div>
             
-            <!-- NEW: Target User Field (Visible only for Admin) -->
+            <!-- Target User Field (Visible only for Admin) -->
             <div class="form-row" id="targetUserRow" style="display: none;">
               <label>For Member (Optional)</label>
               <select id="movementTargetUser">
@@ -180,7 +191,7 @@
               <textarea id="editMovementNotes"></textarea>
             </div>
             
-            <!-- NEW: Notes History Section -->
+            <!-- Notes History Section -->
             <div id="editMovementHistory" class="notes-history" style="display: none;">
               <div class="form-row">
                 <label>Original Notes</label>
