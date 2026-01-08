@@ -1,6 +1,5 @@
 // Car Movement System - Service Worker
 // Version: 2.0 - Enhanced Caching & Update System
-// Last Updated: 2024
 
 const APP_VERSION = '2.0.0';
 const CACHE_NAME = `car-movement-system-${APP_VERSION}`;
@@ -93,7 +92,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Skip Firebase and external resources (they handle their own caching)
+  // Skip Firebase and external resources
   if (url.hostname.includes('firebase') || 
       url.hostname.includes('gstatic') ||
       url.hostname.includes('googleapis') ||
@@ -101,7 +100,6 @@ self.addEventListener('fetch', (event) => {
     return event.respondWith(fetch(request));
   }
   
-  // Handle different types of requests with appropriate strategies
   event.respondWith(
     handleFetchRequest(request)
       .catch(() => {
@@ -225,7 +223,6 @@ async function checkForUpdates() {
         const cachedResponse = await cache.match(asset);
         if (!cachedResponse) return true;
         
-        // Compare ETags or last-modified
         const cachedETag = cachedResponse.headers.get('etag');
         const networkETag = networkResponse.headers.get('etag');
         
@@ -233,7 +230,6 @@ async function checkForUpdates() {
           return true;
         }
         
-        // Fallback: compare content length
         const cachedLength = cachedResponse.headers.get('content-length');
         const networkLength = networkResponse.headers.get('content-length');
         return cachedLength !== networkLength;
@@ -265,7 +261,7 @@ async function getCacheInfo(port) {
       cacheInfo.cacheDetails.push({
         name: cacheName,
         size: requests.length,
-        urls: requests.map(req => req.url).slice(0, 5) // First 5 URLs
+        urls: requests.map(req => req.url).slice(0, 5)
       });
     }
     
@@ -359,7 +355,7 @@ self.addEventListener('notificationclick', (event) => {
       type: 'window',
       includeUncontrolled: true
     }).then((clientList) => {
-      // Check if there's already a window open
+    // Check if there's already a window open
       for (const client of clientList) {
         if (client.url === urlToOpen && 'focus' in client) {
           return client.focus();
